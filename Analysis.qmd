@@ -1,0 +1,957 @@
+---
+title: "A day in daylight"
+author: "Johannes Zauner"
+format: 
+  html:
+    self-contained: true
+    code-tools: true
+    toc: true
+    code-linking: true
+---
+
+## Preface
+
+This document contains the analysis and results for the event **A day in daylight**, where people from around the world measured a complete day of light exposure on (and around) **22 September 2025**.
+
+## Importing data
+
+We first set up all packages needed for the analysis
+
+```{r}
+#| label: setup
+library(LightLogR)
+library(Hmisc)
+library(tidyverse)
+library(gt)
+library(gtExtras)
+library(gtsummary)
+library(legendry)
+library(rlang)
+library(gganimate)
+
+source("https://raw.githubusercontent.com/MeLiDosProject/Data_Metadata_Conventions/main/scripts/overview_plot.R")
+```
+
+Next we import the survey data. Data were collected with REDCap, and there is an import script to load the data in.
+
+```{r}
+#| label: import survey
+source("scripts/prep_survey_data.r")
+```
+
+### Connecting light data with survey data
+
+First, we collect a list of available data sets. As we need to compare them to the device ids in the survey, we require only the file without path or extension
+
+```{r}
+#| label: light datasets
+path_light <- "data/lightloggers"
+files_light <- list.files(path_light) |> tools::file_path_sans_ext()
+```
+
+Next we check which devices are declared in the survey.
+
+```{r}
+#| label: survey devices
+survey_devices <- data |> drop_na(device_id) |> pull(device_id) #get devices
+survey_devices |> anyDuplicated() #are any entries duplicated?: No
+survey_devices |> setequal(files_light) #are light files and survey entries equal?: Yes
+```
+
+No entries are duplicated and the survey device Ids are equal to the light files. 
+
+### Device and location information
+
+Next, we need to get the time zones of the participants and their coordinates. For this, let's reduce the complexity of the dataset and clean the data
+
+```{r}
+#| label: collect device info
+data_devices <- 
+data |> 
+  drop_na(device_id) |> 
+  select(device_id, record_id, 
+         city_country, latitude, longitude,
+         age, sex = sex.factor,
+         complete_log = complete_log.factor,
+         behaviour_change = behaviour_change.factor,
+         travel_time_zone) |> 
+  mutate(travel_time_zone = travel_time_zone == 1)
+label(data_devices$travel_time_zone) = "Time zone travel"
+label(data_devices$age) = "age"
+label(data_devices$behaviour_change) = "Behaviour change"
+
+data_devices |> gt() |> opt_interactive()
+```
+
+`Record ID 31` did not finish the post-survey, so we lack data on that device and consequently remove it. Furthermore, `Record ID 30` only has data much outside the time frame of interest.
+
+```{r}
+#| label: remove ID 31
+data_devices <- data_devices |> filter(!record_id %in% c("31", "30"))
+```
+
+We also have to clean up the city and country, as well as latitude and longitude data. We do this separately and load the data back in.
+The manual entries for locations had to be cleaned. This was done with OpenAI through an API key. The results were stored in the file `data/cleaned/places.csv`. Uncomment the code cell below to recreate the process. Details in outcome may vary, however.
+
+```{r}
+#| label: clean location data with AI
+
+# library(ellmer)
+# 
+# data_devices_red <- 
+# data_devices |> 
+#   select(record_id, city_country, latitude, longitude)
+# 
+# chat <- chat_openai("If there is more then one place specified, only use the first one. If latitude and longitude are misspecified, make a best guess based on city_country. Use IANA names for the time zone identifieres")
+# 
+# #reducing each line in a table to a single string
+# data_devices_red <- 
+# data_devices_red |> 
+#   pmap(~ paste(paste(names(data_devices_red), c(...), sep = ": "), collapse = ", "))
+# 
+# #creating an output structure
+# type_place <- type_object(
+#   record_id = type_string(),
+#   city = type_string(),
+#   country = type_string(),
+#   latitude = type_number(),
+#   longitude = type_number(),
+#   tz_identifier = type_string(),
+#   UTC_dev = type_number("deviation from UTC in hours, given the 22 September 2025")
+# )
+# 
+# places <-
+# parallel_chat_structured(
+#   chat,
+#   data_devices_red,
+#   type = type_place
+# )
+# 
+# write.csv(places, "data/cleaned/places.csv")
+```
+
+```{r}
+#| label: merge cleaned data
+#read pre-cleaned data in
+places <- read_csv("data/cleaned/places.csv")
+places <- 
+  places |> dplyr::mutate(record_id = as.character(record_id))
+
+#merge data with main data
+data_devices_cleaned <- 
+data_devices |> 
+  select(-city_country, -latitude, -longitude) |> 
+  mutate(record_id = as.character(record_id)) |> 
+  left_join(places, by = "record_id") |> 
+  mutate(city = case_match(city,
+                          "Tuebingen" ~ "Tübingen",
+                          "İzmir" ~ "Izmir",
+                          .default = city),
+         country = case_match(country,
+                              "The Netherlands" ~ "Netherlands",
+                              c("Turkiye", "Türkiye") ~ "Turkey",
+                              c("US", "United States", "USA") ~ 
+                                "United States of America",
+                              "UK" ~ "United Kingdom",
+                              .default = country)
+         )
+```
+
+### First overview
+
+The following code cells use the data imported so far to create some descriptive plots about the sample.
+
+```{r}
+#| label: sex axis
+sex_lab <- primitive_bracket(
+  key  = key_range_manual(          # <− positions + labels
+    start = c(-7,0.1),
+    end = c(-0.1,7),# -6  and  +6  on the x-axis
+    name     = c("Males", "Females")
+  ),
+  position = "bottom"         # draw it at the bottom of the panel
+)
+```
+
+```{r}
+#| label: sex and gender distribution
+data_devices_cleaned |>  
+  mutate(
+         age_group = 
+           cut(age, 
+               breaks = seq(15,70,5), 
+               labels = c("18-20", "21-25", "26-30", "31-35", 
+                          "36-40", "41-45", "46-50", "51-55", 
+                          "56-60", "61-65", "66-70"),
+               right = TRUE, ordered_result = TRUE),
+         ) |> 
+  group_by(sex, age_group) |> 
+  dplyr::summarize(n = n(), .groups = "drop") |> 
+  mutate(n = ifelse(sex == "Male", -n, n)) |> 
+  ggplot(aes(x= age_group, y = n, fill = sex)) + 
+  geom_col() +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(breaks = seq(-6,6, by = 2), 
+                     labels = c(6, 4, 2, 0, 2, 4, 6)) +
+  scale_fill_manual(values = c(Male = "#2D6D66", Female = "#A23B54")) + 
+  guides(fill = "none", alpha = "none",
+         x = guide_axis_stack(
+           "axis", sex_lab
+         )) +
+  theme_minimal() +
+  coord_flip(ylim = c(-7, 7)) +
+  labs(x = "Age (yrs)", y = "n")
+
+ggsave("figures/Fig1_age.pdf", 
+       width = 6, height = 6, units = "cm", scale = 1.6)
+```
+
+```{r}
+#| label: statistics about locations
+location_stats <- 
+data_devices_cleaned |> 
+  dplyr::summarise(
+    tz = n_distinct(UTC_dev),
+    country = n_distinct(country),
+    n = n()
+  ) |> 
+  pivot_longer(
+    cols = everything()
+  ) |> 
+  dplyr::mutate(name = case_match(name,
+                           "country" ~ "Countries",
+                           "tz" ~ "Time zones",
+                           "n" ~ "Participants"),
+         name = factor(name, levels = c("Time zones", "Countries", "Participants"))
+         )
+
+P_stats <-
+location_stats |> 
+  ggplot(aes(y = fct_rev(name), x = value, fill = name)) +
+  geom_col() +
+  geom_text(aes(label = value), color = "white", hjust = 1.2, fontface = 2, size = 3) +
+  theme_minimal() +
+  theme_sub_panel(grid = element_blank()) +
+  theme_sub_axis_bottom(text = element_blank()) + 
+  theme_sub_plot(background = element_rect(fill = alpha("white", 0.75))) +
+  labs(x = NULL, y = NULL) +
+  scale_fill_manual(values = c(`Time zones` = "deepskyblue3",
+                               Participants = "red",
+                               Countries = "grey")) +
+  guides(fill = "none")
+
+P_tz <-
+  data_devices_cleaned |> 
+    group_by(UTC_dev) |> 
+    dplyr::summarise(n = n()) |> 
+    ggplot(aes(x=UTC_dev, y = n)) +
+    geom_vline(xintercept = 0, col = "grey") +
+    geom_hline(yintercept = 0, col = "grey") +
+    geom_col(fill = "deepskyblue3")+
+    geom_text(aes(label = n), fontface = 2, vjust = -0.2) +
+    theme_minimal() +
+    theme_sub_panel(grid.major.y = element_blank(),
+                    grid.minor = element_blank()) +
+    theme_sub_axis_left(text = element_blank()) +
+    scale_x_continuous(breaks = seq(-12, 12, 2)) +
+    labs(x = "Deviation from UTC (h) on 22 Sep 2025", y = "n") +
+    coord_cartesian(xlim = c(-11,11), ylim = c(NA, 30))
+
+```
+
+
+```{r}
+#| label: overview map of the participants
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+    
+countries_colors <- tibble(
+      country = data_devices_cleaned |> dplyr::count(country) |> pull(country),
+      color   = "#0073C2FF",
+      stringsAsFactors = FALSE
+    )
+    
+world$color <- ifelse(
+      world$name %in% countries_colors$country,
+      countries_colors$country[match(world$name, countries_colors$country)],
+      NA
+    )
+    
+location_info <- tibble(
+      country  = data_devices_cleaned |> pull(country),
+      lat      = data_devices_cleaned |> pull(latitude),
+      lon      = data_devices_cleaned |> pull(longitude),
+      color    = "#0073C2FF",
+      stringsAsFactors = FALSE
+    ) |> 
+  mutate(lat2 = plyr::round_any(lat, 12), 
+         lon2 = plyr::round_any(lon, 12)) |> 
+  dplyr::summarize(
+    .by = c(lat2, lon2),
+    lat = mean(lat),
+    lon = mean(lon),
+    color = unique(color),
+    n = n()
+  )
+    
+locations <- st_as_sf(location_info, coords = c("lon", "lat"), crs = 4326)
+world_proj     <- st_transform(world,    crs = "+proj=eqc")
+locations_proj <- st_transform(locations, crs = "+proj=eqc")
+bb <- st_bbox(world_proj)
+tz <- sf::st_read("data/tz_now/combined-shapefile-with-oceans-now.shp")  # or .gpkg / .geojson
+tz_lines <- sf::st_boundary(tz)
+
+P_map <-
+  ggplot() +
+  geom_sf(
+    data = world_proj,
+    # aes(fill = color),
+    fill = "grey",
+    color = NA,
+    size = 0.25,
+    alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  geom_sf(data = tz_lines,
+          colour = "deepskyblue3",
+          linewidth = 0.15) +
+  geom_sf(
+    data = locations_proj,
+    aes(size = n),
+    fill = "red",
+    alpha = 0.9,
+    shape = 21,
+    color = "#0073C2FF",
+    stroke = 0.2
+  ) +
+  geom_sf_text(
+    data = locations_proj,
+    aes(label = n),
+    size = 1.5,
+    fontface = 2,
+    color = "white",
+    alpha = 0.75
+  ) +
+  scale_fill_manual(values = rep("#0073C2FF", 15)) +
+  scale_size_continuous(range = c(2, 5)) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(x = NULL, y = NULL) +
+  coord_sf(expand = FALSE)
+```
+
+
+```{r}
+#| label: combined location plot
+
+(P_map + inset_element(P_stats, 0.05, 0.05, 0.25, 0.25)) / P_tz + plot_layout(heights = c(4.4,1))
+
+ggsave("figures/Fig2_location.pdf",P_map / P_tz + plot_layout(heights = c(4.5,1)),
+       width = 15, height = 10, units = "cm", scale = 1.6)
+ggsave("figures/Fig2_location.png",
+       (P_map + inset_element(P_stats, 0.03, 0.03, 0.28, 0.28)) / P_tz + plot_layout(heights = c(4.4,1)),
+       width = 14, height = 9.5, units = "cm", scale = 1.6)
+
+```
+
+### Import wearable data
+
+Next, we import the light data. There are two devices in use: `ActLumus` and `ActTrust` we need to import them separately, as they are using different import functions. `device_id` with four number indicate the `ActLumus` devices, whereas with seven numbers the `ActTrust`. We add a column to the data indicating the Type of device in use. We also make sure that the spelling equals the `supported_devices()` list from `LightLogR`. Then we construct filename paths for all files.
+
+```{r}
+#| label: collect wearable info
+
+c("ActLumus", "ActTrust") %in% supported_devices()
+data_devices_cleaned <- 
+data_devices_cleaned |> 
+  dplyr::mutate(device_type = 
+           case_when(
+              str_length(device_id) == 4 ~ "ActLumus",
+              str_length(device_id) == 7 ~ "ActTrust"
+           ),
+         file_path = glue("data/lightloggers/{device_id}.txt")
+         )
+```
+
+```{r}
+#| label: import files
+data_devices_cleaned <- 
+data_devices_cleaned |> 
+  dplyr::mutate(
+    data = purrr::pmap(list(x = device_type, y = file_path, z = tz_identifier), 
+                       \(x, y, z) {
+                         import_Dataset(device = x, filename = y, tz = z,
+                                        silent = TRUE)
+                       }
+    )
+  )
+```
+
+We end with one dataset per row entry. As the two `ActTrust` files do not contain a melanopic EDI column, we will use the photopic illuminance column `LIGHT` towards that end. As there are only two participants with this shortcoming, it will not influence results overduly.
+
+```{r}
+#| label: ActTrust MEDI variable
+data_devices_cleaned <- 
+data_devices_cleaned |> 
+  dplyr::mutate(
+    data = purrr::map2(device_type, data, 
+                       \(x,y) {
+                         if(x == "ActTrust") {
+                           y |> dplyr::rename(MEDI = LIGHT)
+                         }
+                         else y
+                         }
+                       )
+  )
+```
+
+Further, the dataset in Malaysia had a device malfunction on 22 September and only worked from the 23 September onwards. As there are minimal differences between dates and very few datasets in that region, we will not dismiss that dataset but rather shift data by one day.
+
+```{r}
+#| label: Shift one day for Malaysia
+data_devices_cleaned <- 
+data_devices_cleaned |> 
+  dplyr::mutate(
+    data = purrr::map2(record_id, data, 
+                       \(x,y) {
+                         if(x == "25") {
+                           y |> dplyr::mutate(Datetime = Datetime - ddays(1))
+                         }
+                         else y
+                         }
+                       )
+  )
+```
+
+Lastly, `Record ID 44` has a similar issue, yet in the other direction as to Malaysia. Thus we will shift that dataset forward by 2 days.
+
+```{r}
+#| label: Shift two days for id 44
+data_devices_cleaned <- 
+data_devices_cleaned |> 
+  dplyr::mutate(
+    data = purrr::map2(record_id, data, 
+                       \(x,y) {
+                         if(x == "44") {
+                           y |> dplyr::mutate(Datetime = Datetime + ddays(2))
+                         }
+                         else y
+                         }
+                       )
+  )
+```
+
+## Light data
+
+### Cleaning light data
+
+In this section we will prepare the light data through the following steps:
+
+- resampling data to 5 minute intervals
+- filling in missing data with explicit gaps
+- removing data that does not fall between `2025-09-21 10:00:00 UTC` and `2025-09-23 12:00:00 UTC`, which contains all times where 22 September occurs *somewhere* on the planet
+
+```{r}
+#| label: Cleanup of light data
+data_devices <-
+data_devices_cleaned |> 
+  dplyr::mutate(
+    data = purrr::map(data, 
+                       \(x) {
+                           x |> 
+                           aggregate_Datetime("5 mins") |> #resample to 5 mins
+                           gap_handler(full.days = TRUE) |> #put in explicit gaps
+                           filter_Datetime(start = "2025-09-21 10:00:00",
+                                           end = "2025-09-23 12:00:00",
+                                           tz = "UTC") #cut out a section of data
+                         }
+                       )
+  )
+```
+
+Next, we add a secondary `Datetime` column that runs on UTC time.
+
+```{r}
+#| label: add UTC data
+data_devices <-
+data_devices |> 
+  dplyr::mutate(
+    data = purrr::map(data, 
+                       \(x) {
+                           x |> 
+                           dplyr::mutate(Datetime_UTC = Datetime |> force_tz("UTC"))
+                         }
+                       )
+  )
+```
+
+### Visualizing light data
+
+Now we can visualize the whole dataset - first by combining all datasets.
+
+```{r}
+#| label: combine light data
+#| warning: false
+start_dt <- as.POSIXct("2025-09-21 10:00:00", tz = "UTC")
+start_dt2 <- as.POSIXct("2025-09-22 00:00:00", tz = "UTC")
+end_dt <- as.POSIXct("2025-09-23 12:00:00", tz = "UTC")
+end_dt2 <- as.POSIXct("2025-09-23 00:00:00", tz = "UTC")
+light_data <- 
+  join_datasets(!!!data_devices$data) |> 
+  mutate(Datetime = Datetime |> with_tz("UTC"))
+```
+
+
+```{r}
+#| label: visualize light data
+#| warning: false
+
+light_data |> 
+  aggregate_Datetime("1hour") |> 
+  gg_days(facetting = FALSE, 
+          group = Id, 
+          geom = "ribbon",
+          lwd = 0.25,
+          fill = "skyblue3",
+          color = "skyblue4",
+          alpha = 0.1,
+          y.axis.label = "UTC Time"
+          ) +
+  geom_vline(xintercept = c(start_dt, end_dt), color = "red")
+
+light_data |> 
+  aggregate_Datetime("1hour") |> 
+  gg_days(Datetime_UTC,
+          geom = "ribbon",
+          facetting = FALSE,
+          fill = "skyblue3",
+          color = "skyblue4",
+          alpha = 0.1,
+          group = Id, 
+          lwd = 0.25,
+          y.axis.label = "Local Time"
+          ) +
+  geom_vline(xintercept = c(start_dt2, end_dt2), color = "red")
+```
+
+```{r}
+#| label: animate light data
+#| warning: false
+light_data |> 
+  aggregate_Datetime("1hour") |> 
+  gg_days(Datetime_UTC,
+          facetting = FALSE, 
+          group = Id, 
+          lwd = 0.25,
+          y.axis.label = "UTC Time"
+          ) +
+  geom_vline(xintercept = c(start_dt2, end_dt2), color = "red")
+
+boundaries <- tibble(
+  start = c(start_dt, start_dt2),
+  end = c(end_dt, end_dt2),
+  name = c("UTC Time", "Local Time")
+)
+
+p <- 
+light_data |> 
+  aggregate_Datetime("2 hours") |>
+  select(Id, Datetime, Datetime_UTC, MEDI) |> 
+  pivot_longer(-c(Id, MEDI)) |> 
+  mutate(name = case_match(name,
+                           "Datetime" ~ "UTC Time",
+                           "Datetime_UTC" ~ "Local Time")) |> 
+  dplyr::mutate(name = factor(name)) |> 
+    gg_days(value,
+            geom = "ribbon",
+            fill = "skyblue3",
+            alpha = 0.4,
+            color = "black",
+          facetting = FALSE, 
+          group = Id, 
+          lwd = 0.1,
+          x.axis.label = "{next_state} {if(transitioning) '(transitioning)' else ''}",
+          y.axis.label = "Melanopic EDI (lx)",
+          x.axis.breaks = \(x) Datetime_breaks(x, by = "6 hours", shift = 0),
+          x.axis.format = "%H:%M"
+    )  + 
+  geom_vline(data = boundaries, aes(xintercept=start), col = "red", lty = 2, inherit.aes = FALSE)+
+  geom_vline(data = boundaries, aes(xintercept=end), col = "red", lty = 2, inherit.aes = FALSE)+
+  geom_segment(data = boundaries, 
+               aes(y = 25000, x = start, xend = end), 
+               arrow = arrow(length = unit(0.1, "inches"), ends = "both"), col = "red",  
+               inherit.aes = FALSE)+
+  annotate(geom = "text", y = 25000, x = mean(c(start_dt2, end_dt2)), 
+           vjust = -0.4, label = "Global 22 September", col = "red") +
+  transition_states(
+    name, 
+    transition_length = 1,
+    state_length = 1
+  )
+
+if(interactive()){
+animation <- 
+animate(p, width = 1200, height = 700, res = 150)
+
+animation
+
+anim_save("figures/patterns.gif", animation)
+}
+```
+
+## Events
+
+### Cleaning events
+
+In this section we deal with with the activity logs - first by filtering them out of the dataset, and selecting the relevant aspects.
+
+```{r}
+#| label: filter events
+events <- 
+data |> 
+  filter(redcap_repeat_instrument == "log_a_new_activity") |> 
+  select(record_id,
+         type.factor, 
+         social_context.factor,
+         wear_activity.factor,
+         nonwear_activity.factor,
+         nighttime.factor,
+         setting_level01.factor, 
+         setting_level02_indoors.factor,
+         setting_level02_indoors_home.factor,
+         setting_level02_indoors_workingspace.factor,
+         setting_level02_indoors_healthfacility.factor,
+         setting_level02_indoors_learningfacility.factor,
+         setting_level02_indoors_leisurespace.factor,
+         setting_level02_indoors_retailfacility.factor,
+         setting_level02_mixed.factor,
+         setting_level02_outdoors.factor,
+         lighting_scenario_daylight___1.factor,
+         lighting_scenario_daylight___2.factor,
+         lighting_scenario_daylight___3.factor,
+         lighting_scenario_daylight___4.factor,
+         lighting_scenario_3___1.factor,
+         lighting_scenario_3___2.factor,
+         lighting_scenario_3___3.factor,
+         lighting_scenario_2___1.factor,
+         lighting_scenario_2___2.factor,
+         lighting_scenario_2___3.factor,
+         lighting_scenario_2___4.factor,
+         autonomy.factor,
+         notes, 
+         startdate, enddate
+         )
+
+#adding labels to the factors
+label(events$type.factor) = "Wear type: Are you wearing the light logger at the moment?"
+label(events$social_context.factor) = "Are you alone or with others?"
+label(events$wear_activity.factor) = "Wear activity "
+label(events$nonwear_activity.factor) = "Non-wear activity"
+label(events$nighttime.factor) = "Where was the light logger when you were asleep?"
+label(events$setting_level01.factor) = "Select the setting"
+label(events$setting_level02_indoors.factor) = "Indoors setting"
+label(events$setting_level02_indoors_home.factor) = "Indoors setting (home)"
+label(events$setting_level02_indoors_workingspace.factor) = "Indoors setting (working space)"
+label(events$setting_level02_indoors_learningfacility.factor) = "Indoors setting (learning facility)"
+label(events$setting_level02_indoors_retailfacility.factor) = "Indoors setting (retail facility)"
+label(events$setting_level02_indoors_healthfacility.factor) = "Indoors setting (health facility)"
+label(events$setting_level02_indoors_leisurespace.factor) = "Indoors setting (leisure space)"
+label(events$setting_level02_outdoors.factor) = "Outdoors setting"
+label(events$setting_level02_mixed.factor) = "Indoors-outdoors setting"
+label(events$lighting_scenario_daylight___1.factor) = "Select lighting setting (daylight) (choice=Outdoors (direct sunlight))"
+label(events$lighting_scenario_daylight___2.factor) = "Select lighting setting (daylight) (choice=Outdoors (in shade / cloudy))"
+label(events$lighting_scenario_daylight___3.factor) = "Select lighting setting (daylight) (choice=Indoors (near window / exposed to daylight))"
+label(events$lighting_scenario_daylight___4.factor) = "Select lighting setting (daylight) (choice=Indoors (away from window))"
+label(events$lighting_scenario_3___1.factor) = "Select lighting setting (electric light) (choice=Lights are switched on)"
+label(events$lighting_scenario_3___2.factor) = "Select lighting setting (electric light) (choice=Low-light or dimmed lights)"
+label(events$lighting_scenario_3___3.factor) = "Select lighting setting (electric light) (choice=Completed darkness)"
+label(events$lighting_scenario_2___1.factor) = "Select lighting setting (screen use) (choice=Smartphone)"
+label(events$lighting_scenario_2___2.factor) = "Select lighting setting (screen use) (choice=Tablet)"
+label(events$lighting_scenario_2___3.factor) = "Select lighting setting (screen use) (choice=Computer)"
+label(events$lighting_scenario_2___4.factor) = "Select lighting setting (screen use) (choice=Television)"
+label(events$autonomy.factor) = "Were the lighting conditions in this setting self-selected (i.e., you had control over lighting intensity, spectrum, or exposure)?"
+```
+
+Next, we condense columns that can be expressed as one. We also lose the `.factor` extension, as now all doubles are removed. Finally, we simplify entries.
+
+```{r}
+#| label: simplify factors
+events <- 
+events |> 
+  rename_with(\(x) x |> str_remove(".factor")) |> #remove .factor extension
+  dplyr::mutate(
+    type = type |> fct_relabel(\(x) str_remove(x, "-time| time| \\(not wearing light logger\\)")),
+    across(c(wear_activity, setting_level01),
+           \(x) x |> fct_relabel(\(y) str_remove(y, " \\(.*\\)"))
+           ),
+    nonwear_activity = 
+      nonwear_activity |> fct_recode(
+        "Dark mobile" = "Left in a bag, or other mobile dark place",
+        "Dark stationary" = "Left in a drawer or cabinet, or other stationary dark place",
+        "Stationary" = "Left on a table or other surface with varying light exposure"
+      ),
+    nighttime = 
+      nighttime |> fct_recode(
+        "Upward" = "Facing upward on bedside table",
+        "Downward" = "Facing downward on bedside table"
+      ),
+    across(c(setting_level02_indoors, setting_level02_outdoors),
+           \(x) x |> fct_recode(
+        "Leisure" = "Leisure space (sports, recreation, entertainment)",
+        "Commercial" = "Retail, food or services facility",
+        "Workplace" = "Working space",
+        "Education" = "Learning facility",
+        "Healthcare" = "Health facility"
+           )
+        ),
+    setting_level01 = 
+      setting_level01 |> fct_recode(
+        "Mixed" = "Indoor-outdoor setting"
+      ),
+    autonomy =
+      autonomy |> fct_recode(
+        Yes = "Yes, fully self-selected (e.g., adjusting lights at home or in a private office, moving to shaded area)",
+        Partly = "Partly self-selected (e.g., some control such as opening blinds or switching a desk lamp, but not over main lighting)",
+        No = "Not self-selected (e.g., public transport, shared office, classroom, hospital, airplane, etc.)",
+        NULL = "Not applicable"
+      )
+  ) |> 
+  dplyr::rename(setting_light = setting_level01)
+```
+
+```{r}
+#| label: combining factors
+events <- 
+events |>
+  dplyr::mutate(
+    scenario_daylight =
+      case_when(
+        lighting_scenario_daylight___1 == "Checked" ~ "Direct sunlight",
+        lighting_scenario_daylight___2 == "Checked" ~ "Shade / cloudy",
+        lighting_scenario_daylight___3 == "Checked" ~ "Near a window",
+        lighting_scenario_daylight___4 == "Checked" ~ "Away from window"
+      ),
+    scenario_electric =
+      case_when(
+        lighting_scenario_3___3 == "Checked" ~ "Darkness",
+        lighting_scenario_3___2 == "Checked" ~ "Dim light",
+        lighting_scenario_3___1 == "Checked" ~ "Lights on",
+      ),
+    across(starts_with("lighting_scenario_2___"),
+           \(x) ifelse(x == "Checked", TRUE, FALSE)),
+  ) |> 
+  dplyr::rename(screen_phone = lighting_scenario_2___1,
+                screen_tablet = lighting_scenario_2___2,
+                screen_pc = lighting_scenario_2___3,
+                screen_tv = lighting_scenario_2___4
+                ) |> 
+  select(-starts_with("lighting_scenario")) |> 
+  dplyr::mutate(
+    wear_activity = case_when(type == "Wear" ~ wear_activity, .default = NA),
+    nonwear_activity = case_when(type == "Non-wear" ~ nonwear_activity, .default = NA),
+    nighttime = case_when(type == "Bedtime" ~ nighttime, .default = NA),
+    setting_level02_mixed = case_when(setting_light == "Mixed" ~ setting_level02_mixed, .default = NA),
+    setting_level02_indoors = case_when(setting_light == "Indoors" ~ setting_level02_indoors, .default = NA),
+    setting_level02_outdoors = case_when(setting_light == "Outdoors" ~ setting_level02_outdoors, .default = NA),
+    setting_level02_indoors_leisurespace = case_when(setting_level02_indoors == "Leisure" ~ setting_level02_indoors_leisurespace, .default = NA),
+    setting_level02_indoors_workingspace = case_when(setting_level02_indoors == "Workplace" ~ setting_level02_indoors_workingspace, .default = NA),
+  ) |> 
+  unite("type.detail", c(wear_activity, nonwear_activity, nighttime), na.rm = TRUE,
+        remove = FALSE) |> 
+  unite("setting_location", 
+        c(setting_level02_indoors, setting_level02_outdoors, setting_level02_mixed), 
+        na.rm = TRUE, remove = FALSE) |> 
+  unite("setting_specific", 
+        starts_with("setting_level02_indoors_"), 
+        na.rm = TRUE, remove = FALSE) |> 
+  dplyr::rename_with(\(x) x |> str_remove("_level02")) |> 
+  relocate(scenario_daylight, scenario_electric, .before = screen_phone) |> 
+  relocate(startdate, .before = 1) |> 
+  select(-enddate) |> 
+  dplyr::mutate(
+    across(c(setting_location, setting_specific),
+           \(x) fct_recode(x, NULL = ""))
+  )
+```
+
+```{r}
+#| label: joining participant information
+part_data <- data_devices |> select(-data) |> mutate(record_id = as.character(record_id))
+
+events_complete <- 
+events |> 
+  dplyr::mutate(record_id = as.character(record_id)) |> 
+  left_join(part_data, by = "record_id") |> 
+  drop_na(tz_identifier)
+
+label(events_complete$record_id) = "Record ID"
+
+events_complete <- 
+events_complete |> 
+  dplyr::mutate(
+    Datetime = as.POSIXct(startdate, tz = "UTC"),
+    UTC_dt = force_tzs(Datetime, tz_identifier),
+    .before = 1) |> 
+  select(-startdate)
+
+```
+
+### Summaries
+
+In this section we will calculate some summary statistics regarding events
+
+```{r}
+#| label: duration of states
+events_complete <- 
+events_complete |> 
+  dplyr::mutate(status.duration = c(diff(Datetime), na_dbl), 
+                .by = record_id,
+                .after = Datetime) |> 
+  filter(!record_id %in% c("31", "30"))
+```
+
+
+```{r}
+#| label: adding labels
+label(events_complete$status.duration) = "Time between log entries"
+label(events_complete$type.detail) = "Wear/Non-wear context"
+label(events_complete$setting_location) = "General setting"
+label(events_complete$setting_specific) = "Specific indoor setting"
+label(events_complete$scenario_daylight) = "Daylight conditions"
+label(events_complete$scenario_electric) = "Electric lighting conditions"
+label(events_complete$screen_phone) = "Phone use"
+label(events_complete$screen_tablet) = "Tablet use"
+label(events_complete$screen_pc) = "Computer use"
+label(events_complete$screen_tv) = "Television use"
+label(events_complete$sex) = "Sex"
+label(events_complete$city) = "City"
+label(events_complete$country) = "Country"
+label(events_complete$latitude) = "Latitude"
+label(events_complete$longitude) = "Longitude"
+label(events_complete$tz_identifier) = "Time zone identifier"
+label(events_complete$UTC_dev) = "Time zone deviation from UTC"
+label(events_complete$device_type) = "Used device"
+label(events_complete$file_path) = "File path"
+label(events_complete$setting_indoors) = "Indoor settings"
+label(events_complete$setting_outdoors) = "Outdoor settings"
+label(events_complete$setting_mixed) = "Outdoor-Indoor mixed settings"
+label(events_complete$wear_activity) = "Activity"
+label(events_complete$nonwear_activity) = "Non-wear wearable position"
+label(events_complete$nighttime) = "Nightstand wearable measurement direction"
+```
+
+```{r}
+#| label: overall summaries
+event_summary1 <- 
+events_complete |> 
+  dplyr::summarize(.by = record_id,
+            n = n(),
+            mean.duration = mean(status.duration, na.rm = TRUE),
+            covered.timespan = last(Datetime) - first(Datetime)
+  )
+label(event_summary1$n) = "Log entries"
+label(event_summary1$mean.duration) = "Mean duration between log entries"
+units(event_summary1$mean.duration) = "hours"
+label(event_summary1$covered.timespan) = "Total time span of log entries"
+
+event_summary1.tbl <- 
+event_summary1 |> 
+  tbl_summary(include = -record_id,
+              statistic = list(all_continuous() ~ "{mean} ({min}-{max})")
+              ) |> 
+  modify_caption("**Activity logging (by-participant level)**")
+
+event_summary1.tbl
+gtsave(event_summary1.tbl |> as_gt(), "tables/table1.png")
+```
+
+```{r}
+#| label: detailed summaries
+
+event_tbl_setting <- 
+events_complete |> 
+  select(setting_indoors, setting_outdoors, setting_mixed
+         ) |> 
+  tbl_summary(missing = "no"
+  )
+
+event_tbl_setting
+gtsave(event_tbl_setting |> as_gt(), "tables/table2.png")
+
+event_tbl_indoors <- 
+events_complete |> 
+  select(setting_specific
+         ) |> 
+  tbl_summary(missing = "no"
+  )
+
+event_tbl_indoors
+gtsave(event_tbl_indoors |> as_gt(), "tables/table3.png")
+
+
+event_tbl_wear <- 
+events_complete |> 
+  select(type, wear_activity, nonwear_activity, nighttime
+         ) |> 
+  tbl_summary(
+    missing = "no"
+  )
+
+event_tbl_wear
+gtsave(event_tbl_wear |> as_gt(), "tables/table4.png")
+
+
+event_tbl_other <- 
+events_complete |> 
+  select(social_context, setting_light, scenario_daylight, 
+         scenario_electric, autonomy
+         ) |> 
+  tbl_summary(
+    missing_text = "Missing"
+  )
+
+event_tbl_other
+gtsave(event_tbl_other |> as_gt(), "tables/table4.png")
+
+```
+
+```{r}
+#| label: time in condition summary
+
+event_tbl_duration <- 
+events_complete |> 
+  drop_na(setting_light) |> 
+  dplyr::summarize(`Daily duration` = sum(status.duration, na.rm = TRUE),
+                   .by = c(setting_light, record_id)) |> 
+  dplyr::summarize(`Daily duration` = mean(`Daily duration`),
+                   .by = c(setting_light)) |> 
+  dplyr::mutate(`Daily duration` =
+                  `Daily duration` /
+                  sum(as.numeric(`Daily duration`)) *
+                  24*60*60,
+                Percent = 
+                  (as.numeric(`Daily duration`)/
+                  sum(as.numeric(`Daily duration`)))
+                  # vec_fmt_percent()
+                ) |> 
+  gt(rowname_col = "setting_light") |> 
+  grand_summary_rows( 
+                     fns = list(
+      sum ~ sum(.)
+    ),
+    fmt = list(~ fmt_percent(., columns = Percent), 
+               ~ fmt_duration(., columns = `Daily duration`, 
+               input_units = "secs",
+               max_output_units = 2))
+    ) |> 
+  fmt_duration(`Daily duration`, 
+               input_units = "secs",
+               max_output_units = 2) |> 
+  fmt_percent(columns = Percent) |> 
+  tab_header(title = "Mean daily duration in condition")
+
+event_tbl_duration
+gtsave(event_tbl_duration, "tables/table5.png")
+
+```
+

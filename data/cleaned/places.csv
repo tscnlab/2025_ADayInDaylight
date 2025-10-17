@@ -1,0 +1,50 @@
+"","record_id","city","country","latitude","longitude","tz_identifier","UTC_dev"
+"1","3","Riehen","Switzerland",47.573056,7.644167,"Europe/Zurich",2
+"2","4","Madrid","Spain",40.523106,-3.7038,"Europe/Madrid",2
+"3","5","Bochum","Germany",51.48025,7.237972,"Europe/Berlin",2
+"4","6","Kumasi","Ghana",6.69097,-1.61613,"Africa/Accra",0
+"5","7","Dortmund","Germany",51.5136,7.4653,"Europe/Berlin",2
+"6","8","Antalya","Turkey",36.9,30.7,"Europe/Istanbul",3
+"7","9","Eindhoven","The Netherlands",51.4485802,5.4860307,"Europe/Amsterdam",2
+"8","10","Dortmund","Germany",51.514167,7.463889,"Europe/Berlin",2
+"9","11","Dortmund","Germany",51.500556,7.467222,"Europe/Berlin",2
+"10","12","Tuebingen","Germany",48.53,9.069,"Europe/Berlin",2
+"11","13","Berlin","Germany",52.512194,13.346528,"Europe/Berlin",2
+"12","15","Berlin","Germany",52.233333,13.633333,"Europe/Berlin",2
+"13","16","Tübingen","Germany",48.53675,9.05931,"Europe/Berlin",2
+"14","17","Dortmund","Germany",51.514167,7.463889,"Europe/Berlin",2
+"15","18","Tübingen","Germany",48.5216,9.0576,"Europe/Berlin",2
+"16","19","Velbert","Germany",51.335278,7.51,"Europe/Berlin",2
+"17","20","Izmir","Turkey",38.1967207,26.8391099,"Europe/Istanbul",3
+"18","21","Dortmund","Germany",51.5,7.4,"Europe/Berlin",2
+"19","23","Shenzhen","China",22,114,"Asia/Shanghai",8
+"20","24","Izmir","Türkiye",38.4192,27.1287,"Europe/Istanbul",3
+"21","25","Johor Bahru","Malaysia",1.4799,103.7643,"Asia/Kuala_Lumpur",8
+"22","26","İzmir","Turkiye",38.33261,26.64507,"Europe/Istanbul",3
+"23","27","Philadelphia","United States",40.1417,-75.1927,"America/New_York",-4
+"24","28","Kongsberg","Norway",59.6759766,9.6534677,"Europe/Oslo",2
+"25","29","Dortmund","Germany",51.5,7.3,"Europe/Berlin",2
+"26","30","Dortmund","Germany",51.49854,7.41701,"Europe/Berlin",2
+"27","34","Guildford","UK",51.2354,-0.5743,"Europe/London",1
+"28","35","Dublin","Ireland",53.35,-6.26,"Europe/Dublin",1
+"29","36","Borås","Sweden",57.72,12.94,"Europe/Stockholm",2
+"30","37","Tübingen","Germany",48.5366,9.0576,"Europe/Berlin",2
+"31","38","San José","Costa Rica",9.833,-84,"America/Costa_Rica",-6
+"32","39","San José","Costa Rica",9.94365,-84.17604,"America/Costa_Rica",-6
+"33","40","Havertown","USA",39.9763656,-75.3149796,"America/New_York",-4
+"34","41","Eindhoven","Netherlands",51.4416,5.4697,"Europe/Amsterdam",2
+"35","42","Velbert","Germany",51.3333,7.05,"Europe/Berlin",2
+"36","43","Liberia","Costa Rica",10.63517,-85.43779,"America/Costa_Rica",-6
+"37","44","Zurich","Switzerland",47.4,8.5,"Europe/Zurich",2
+"38","45","League City","United States",29.487,-95.109,"America/Chicago",-5
+"39","46","Madrid","Spain",40.5,-3.6667,"Europe/Madrid",2
+"40","47","Kongsberg","Norway",59.65,9.65,"Europe/Oslo",2
+"41","48","Berlin","Germany",52.5,13.6,"Europe/Berlin",2
+"42","49","San Jose","USA",37.414971,-122.059474,"America/Los_Angeles",-7
+"43","50","Mountain View","USA",37.4145646,-122.0524302,"America/Los_Angeles",-7
+"44","51","El Cerrito","United States",37.9161,-122.3108,"America/Los_Angeles",-7
+"45","52","San Francisco","USA",37.7502,-122.3801,"America/Los_Angeles",-7
+"46","53","San Leandro","US",37.67,-122.08,"America/Los_Angeles",-7
+"47","54","San Jose","United States",37.2,-121.53,"America/Los_Angeles",-7
+"48","55","Melbourne","Australia",-37.8,144.96,"Australia/Melbourne",11
+"49","56","Munich","Germany",48.135,11.569997,"Europe/Berlin",2
