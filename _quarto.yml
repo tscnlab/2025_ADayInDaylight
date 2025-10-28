@@ -1,0 +1,56 @@
+project:
+  type: website
+  output-dir: docs
+  
+website:
+  title: "A DAY IN DAYLIGHT"
+  repo-url: https://github.com/tscnlab/2025_ADayInDaylight_Data
+  issue-url: https://github.com/tscnlab/2025_ADayInDaylight_Data/issues
+  repo-actions: [edit, issue]
+  favicon: assets/favicon.png
+  page-navigation: true
+  bread-crumbs: true
+  navbar:
+    logo: assets/DLA day 1 topic 2026.png
+    left:
+      - text: Home
+        href: index.qmd
+      - text: Dashboard
+        href: Dashboard.qmd
+      - text: Analysis script
+        href: Analysis.qmd
+      - text: "Event flyer"
+        href: assets/20251008_Announcement.png
+        target: "_blank"
+      - text: "Register"
+        href: https://tum-conf.zoom.us/webinar/register/WN_5kg36iuNRACb18RXr4sqkA#/registration
+        target: "_blank"
+    right:
+      - text: "![](assets/logo.png){height=40px}"
+        href: https://tscnlab.github.io/LightLogR/
+        target: "_blank"
+      - text: "![](assets/logo_with_text-sd){height=40px}"
+        href: https://www.tscnlab.org
+        target: "_blank"
+      - text: "![](assets/logo.svg){height=40px}"
+        href: https://daylight.academy
+        target: "_blank"
+      - text: "![](assets/Logo_DLAW.png){height=40px}"
+        href: https://daylight.academy/daylight-awareness-week-2025/
+        target: "_blank"
+      - icon: github
+        href: https://github.com/tscnlab/2025_ADayInDaylight_Data
+        aria-label: Quarto GitHub
+        
+format:
+  html:
+    theme:
+      - cosmo
+      - custom.scss
+    toc: true
+
+execute:
+  freeze: auto
+
+language:
+  title-block-published: "Last modified:"

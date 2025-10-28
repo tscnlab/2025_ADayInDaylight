@@ -1,0 +1,107 @@
+---
+# page-layout: full
+format:
+  html:
+    toc: false
+    smooth-scroll: true
+    grid:
+      body-width: 1200px
+author: 
+  - name: "Johannes Zauner"
+    affiliation: "Technical University of Munich & Max Planck Institute for Biological Cybernetics, Germany"
+    orcid: "0000-0003-2171-4566"
+  - name: "Resshaya Roobini Murukesu"
+    affiliation: "TUMCREATE Ltd. (Singapore)"
+    orcid: "0000-0002-0947-5817"
+  - name: "Manuel Spitschan"
+    affiliation: "Technical University of Munich & Max Planck Institute for Biological Cybernetics, Germany"      
+    orcid: "0000-0002-8572-9268"
+image: assets/flyer.png
+open-graph:
+  title: "A Day in Daylight — Light Exposure Around the World"
+  description: "A global, equinox‑day capture of human light exposure with interactive results and insights."
+  image: assets/20251008_Announcement.png
+---
+
+
+```{=html}
+<style>
+  /* Fixed, non‑scrolling backdrop via a pseudo‑element */
+  html, body { height: 100%; }
+  body { position: relative; z-index: 0; }
+  body::before {
+    content: "";
+    position: fixed;   /* stays put while content scrolls */
+    inset: 0;
+    z-index: -1;       /* behind all content */
+    pointer-events: none;
+
+    /* Flyer-style background */
+    background:
+      radial-gradient(800px 800px at 80% 10%, #EFE9CE, transparent 60%),
+      radial-gradient(600px 600px at 12% 90%, #EFC695, transparent 60%),
+      radial-gradient(700px 700px at -10% -10%, #EFE9CE, transparent 50%),
+      #F0F3F8;
+    background-repeat: no-repeat;
+    background-size: cover;   /* scale to cover viewport */
+    background-position: center;
+  }
+  .hero {
+    position: relative; padding: 4.5rem 0 3rem; margin-bottom: 1.5rem;
+  }
+  .hero .wrap { max-width: 1100px; margin: 0 auto; }
+  .hero h1 { font-weight: 800; letter-spacing: .3px; margin-bottom: .5rem; }
+  .hero p.lead { font-size: 1.25rem; opacity: .9; }
+  .hero-card { background: rgba(255,255,255,.78); border-radius: 18px; box-shadow: 0 12px 28px rgba(0,0,0,.12); padding: 1.5rem; backdrop-filter: blur(6px); }
+  .cta { display: inline-flex; gap: .75rem; flex-wrap: wrap; }
+  .cta .btn-lg { padding: .9rem 1.25rem; border-radius: 14px; }
+  .logo-circle { width: 84px; height: 84px; border-radius: 999px; background: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.12); display:flex; align-items:center; justify-content:center; }
+  .logo-circle img { max-width: 72px; max-height: 72px; }
+  .tile { background: #fff; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,.08); padding: 1.25rem; height: 100%; }
+  .pill { display:inline-block; padding:.35rem .7rem; border-radius:999px; background: #EFE9CE; margin-right:.4rem; font-size:.85rem; }
+  .kpi { font-weight: 700; font-size: 1.75rem; }
+  .footer-note { text-align:center; opacity:.65; font-size:.95rem; padding: 1.25rem 0 2.5rem; }
+</style>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="row g-4 align-items-center">
+      <div class="col-lg-7">
+        <div class="hero-card">
+          <center><img src="assets/day_in_daylight.gif" width="50%" /></center>
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="logo-circle">
+              <img src="assets/DLA day 1 topic 2026.png" alt="A Day in Daylight logo"/>
+              </br></br>
+            </div>
+            <div>
+              <h2 class="mb-1">Light exposure around the world</h2>
+            </div>
+          </div>
+          <p class="lead mb-3">On the September 2025 equinox, over 50 participants across the globe logged and annotated their daily light exposure. Join us for <i>A Day in Daylight</i> where these global teams reveal their findings and explore what these patterns mean for health, lifestyle and our understanding of daylight. Hosted by <strong>Manuel Spitschan</strong> The dashboard aggregates these observations into comparable visuals and tables.</p>
+          <p class="mb-1"><span class="pill">Live event: Monday, 3 November 2025 17:00 CET</span> <span class="pill">Dashboard: anytime</span></p>
+          <div class="cta mt-3">
+            <a class="btn btn-primary btn-lg" href="Dashboard.html">Open the Dashboard</a>
+            <a class="btn btn-outline-secondary btn-lg" href="https://www.hs.mh.tum.de/en/mh/news-en/article/a-day-in-daylight-globale-daten-zum-einfluss-von-tageslicht-auf-gesundheit-und-lebensweise/">Event details</a>
+            <a class="btn btn-outline-secondary btn-lg" href="https://tum-conf.zoom.us/webinar/register/WN_5kg36iuNRACb18RXr4sqkA#/registration">Register for the event</a>
+            <a class="btn btn-outline-secondary btn-lg" href="https://daylight.academy/daylight-awareness-week-2025/">Daylight awareness week</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+```
+
+::: {.hero-card}
+## About the event
+
+This event is part of the [Daylight Awareness Week 2025](https://daylight.academy/daylight-awareness-week-2025/), initiated by the [Daylight Academy](https://daylight.academy). The event is organized by the [Translational Sensory & Circadian Neuroscience Unit](https://www.tscnlab.org). Analyses of personal light exposure data were perfomed using the open-source software package [LightLogR](https://tscnlab.github.io/LightLogR/).
+
+![](assets/logo.png){height=150px .pad-fig}
+![](assets/logo_with_text-sd){height=125px .pad-fig}
+![](assets/logo.svg){height=150px .pad-fig}
+![](assets/Logo_DLAW.png){height=150px .pad-fig}
+
+:::

@@ -1,0 +1,39 @@
+/*-- scss:defaults --*/
+
+// colors
+
+/*-- scss:rules --*/
+.card-header {
+  background-color: #EFC000FF;
+}
+
+.card { background: rgba(255,255,255,.78); border-radius: 18px; box-shadow: 0 12px 28px rgba(0,0,0,.12); backdrop-filter: blur(6px); }
+
+.my-valuebox1 {
+          color: #009acd;
+        }
+.my-valuebox2 {
+          color: #AAAAAA;
+        }
+.my-valuebox3 {
+          color: #ff0000;
+        }
+.my-valuebox4 {
+          color: #EFC000FF;
+        }
+ 
+       
+/* Padding around the whole figure (image + caption) */
+.pad-fig {
+  padding: 20px;              /* adjust to taste */
+  background: transparent;    /* set a color if you want it visible */
+  border-radius: 8px;         /* optional */
+}
+
+/* Keep the image responsive inside the padded box */
+.pad-fig .figure-img, 
+.pad-fig > img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}

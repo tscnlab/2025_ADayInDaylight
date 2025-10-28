@@ -1,6 +1,15 @@
 ---
 title: "A day in daylight"
-author: "Johannes Zauner"
+author: 
+  - name: "Johannes Zauner"
+    affiliation: "Technical University of Munich & Max Planck Institute for Biological Cybernetics, Germany"
+    orcid: "0000-0003-2171-4566"
+  - name: "Resshaya Roobini Murukesu"
+    affiliation: "TUMCREATE Ltd. (Singapore)"
+    orcid: "0000-0002-0947-5817"
+  - name: "Manuel Spitschan"
+    affiliation: "Technical University of Munich & Max Planck Institute for Biological Cybernetics, Germany"      
+    orcid: "0000-0002-8572-9268"
 format: 
   html:
     self-contained: true
@@ -13,6 +22,10 @@ format:
 
 This document contains the analysis and results for the event **A day in daylight**, where people from around the world measured a complete day of light exposure on (and around) **22 September 2025**.
 
+::: {.callout-note}
+Note that this script is optimized to generate plot outputs and objects to implement in a dashboard. Thus the direct outputs of the script might look distorted in places.
+:::
+
 ## Importing data
 
 We first set up all packages needed for the analysis
@@ -23,13 +36,23 @@ library(LightLogR)
 library(Hmisc)
 library(tidyverse)
 library(gt)
+library(patchwork)
 library(gtExtras)
 library(gtsummary)
 library(legendry)
 library(rlang)
 library(gganimate)
+library(ggdist)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+library(glue)
+library(suncalc)
+library(scales)
+library(progress)
 
-source("https://raw.githubusercontent.com/MeLiDosProject/Data_Metadata_Conventions/main/scripts/overview_plot.R")
+# source("https://raw.githubusercontent.com/MeLiDosProject/Data_Metadata_Conventions/main/scripts/overview_plot.R")
 ```
 
 Next we import the survey data. Data were collected with REDCap, and there is an import script to load the data in.
@@ -83,11 +106,11 @@ label(data_devices$behaviour_change) = "Behaviour change"
 data_devices |> gt() |> opt_interactive()
 ```
 
-`Record ID 31` did not finish the post-survey, so we lack data on that device and consequently remove it. Furthermore, `Record ID 30` only has data much outside the time frame of interest.
+`Record ID 31` did not finish the post-survey, so we lack data on that device and consequently remove it. Furthermore, `Record ID 30` only has data much outside the time frame of interest. `Record ID 40` don't has sensible data and will also be removed. Likely some issue with a dead battery is the reason.
 
 ```{r}
 #| label: remove ID 31
-data_devices <- data_devices |> filter(!record_id %in% c("31", "30"))
+data_devices <- data_devices |> filter(!record_id %in% c("31", "30", "44"))
 ```
 
 We also have to clean up the city and country, as well as latitude and longitude data. We do this separately and load the data back in.
@@ -135,7 +158,9 @@ The manual entries for locations had to be cleaned. This was done with OpenAI th
 #read pre-cleaned data in
 places <- read_csv("data/cleaned/places.csv")
 places <- 
-  places |> dplyr::mutate(record_id = as.character(record_id))
+  places |> 
+  dplyr::mutate(record_id = as.character(record_id)) |> 
+  select(-`...1`)
 
 #merge data with main data
 data_devices_cleaned <- 
@@ -175,6 +200,8 @@ sex_lab <- primitive_bracket(
 
 ```{r}
 #| label: sex and gender distribution
+
+Plot_demo <- 
 data_devices_cleaned |>  
   mutate(
          age_group = 
@@ -202,7 +229,9 @@ data_devices_cleaned |>
   coord_flip(ylim = c(-7, 7)) +
   labs(x = "Age (yrs)", y = "n")
 
-ggsave("figures/Fig1_age.pdf", 
+Plot_demo
+
+ggsave("figures/Fig1_age.png", 
        width = 6, height = 6, units = "cm", scale = 1.6)
 ```
 
@@ -343,13 +372,16 @@ P_map <-
 
 ```{r}
 #| label: combined location plot
+#| fig-height: 9.5
+#| fig-width: 14
 
+P_map_patch <- 
 (P_map + inset_element(P_stats, 0.05, 0.05, 0.25, 0.25)) / P_tz + plot_layout(heights = c(4.4,1))
 
-ggsave("figures/Fig2_location.pdf",P_map / P_tz + plot_layout(heights = c(4.5,1)),
+ggsave("figures/Fig2_location.pdf",P_map_patch,
        width = 15, height = 10, units = "cm", scale = 1.6)
 ggsave("figures/Fig2_location.png",
-       (P_map + inset_element(P_stats, 0.03, 0.03, 0.28, 0.28)) / P_tz + plot_layout(heights = c(4.4,1)),
+       P_map_patch,
        width = 14, height = 9.5, units = "cm", scale = 1.6)
 
 ```
@@ -405,7 +437,7 @@ data_devices_cleaned |>
   )
 ```
 
-Further, the dataset in Malaysia had a device malfunction on 22 September and only worked from the 23 September onwards. As there are minimal differences between dates and very few datasets in that region, we will not dismiss that dataset but rather shift data by one day.
+Further, the dataset in Malaysia had a device malfunction on 22 September and only worked from the 23 September onwards. As there are minimal differences between dates and very few datasets in that region, we will not dismiss that dataset but rather shift data by one day. We need to shift the data by another 8 hours backwards, as that dataset was stored in UTC time (for some reason).
 
 ```{r}
 #| label: Shift one day for Malaysia
@@ -415,25 +447,9 @@ data_devices_cleaned |>
     data = purrr::map2(record_id, data, 
                        \(x,y) {
                          if(x == "25") {
-                           y |> dplyr::mutate(Datetime = Datetime - ddays(1))
-                         }
-                         else y
-                         }
-                       )
-  )
-```
-
-Lastly, `Record ID 44` has a similar issue, yet in the other direction as to Malaysia. Thus we will shift that dataset forward by 2 days.
-
-```{r}
-#| label: Shift two days for id 44
-data_devices_cleaned <- 
-data_devices_cleaned |> 
-  dplyr::mutate(
-    data = purrr::map2(record_id, data, 
-                       \(x,y) {
-                         if(x == "44") {
-                           y |> dplyr::mutate(Datetime = Datetime + ddays(2))
+                           y |> dplyr::mutate(
+                             Datetime = Datetime - ddays(1) - dhours(8)
+                             )
                          }
                          else y
                          }
@@ -490,12 +506,18 @@ data_devices |>
 Now we can visualize the whole dataset - first by combining all datasets.
 
 ```{r}
-#| label: combine light data
+#| label: period of interest
 #| warning: false
 start_dt <- as.POSIXct("2025-09-21 10:00:00", tz = "UTC")
 start_dt2 <- as.POSIXct("2025-09-22 00:00:00", tz = "UTC")
 end_dt <- as.POSIXct("2025-09-23 12:00:00", tz = "UTC")
 end_dt2 <- as.POSIXct("2025-09-23 00:00:00", tz = "UTC")
+```
+
+
+```{r}
+#| label: combine light data
+#| warning: false
 light_data <- 
   join_datasets(!!!data_devices$data) |> 
   mutate(Datetime = Datetime |> with_tz("UTC"))
@@ -505,6 +527,7 @@ light_data <-
 ```{r}
 #| label: visualize light data
 #| warning: false
+
 
 light_data |> 
   aggregate_Datetime("1hour") |> 
@@ -726,14 +749,18 @@ events |>
   dplyr::mutate(
     scenario_daylight =
       case_when(
-        lighting_scenario_daylight___1 == "Checked" ~ "Direct sunlight",
-        lighting_scenario_daylight___2 == "Checked" ~ "Shade / cloudy",
-        lighting_scenario_daylight___3 == "Checked" ~ "Near a window",
-        lighting_scenario_daylight___4 == "Checked" ~ "Away from window"
+        (lighting_scenario_daylight___1 == "Checked") & 
+          (setting_light %in% c("Outdoors", "Mixed")) ~ "Direct sunlight",
+        (lighting_scenario_daylight___2 == "Checked") &
+          (setting_light %in% c("Outdoors", "Mixed")) ~ "Shade / cloudy",
+        (lighting_scenario_daylight___3 == "Checked") &
+          (setting_light %in% c("Indoors", "Mixed")) ~ "Near a window",
+        (lighting_scenario_daylight___4 == "Checked") &
+          (setting_light %in% c("Indoors", "Mixed")) ~ "Away from window"
       ),
     scenario_electric =
       case_when(
-        lighting_scenario_3___3 == "Checked" ~ "Darkness",
+        lighting_scenario_3___3 == "Checked" ~ "Lights off",
         lighting_scenario_3___2 == "Checked" ~ "Dim light",
         lighting_scenario_3___1 == "Checked" ~ "Lights on",
       ),
@@ -769,7 +796,7 @@ events |>
   relocate(startdate, .before = 1) |> 
   select(-enddate) |> 
   dplyr::mutate(
-    across(c(setting_location, setting_specific),
+    across(c(setting_location, setting_specific, type.detail),
            \(x) fct_recode(x, NULL = ""))
   )
 ```
@@ -807,7 +834,7 @@ events_complete |>
   dplyr::mutate(status.duration = c(diff(Datetime), na_dbl), 
                 .by = record_id,
                 .after = Datetime) |> 
-  filter(!record_id %in% c("31", "30"))
+  filter(!record_id %in% c("31", "30", "44"))
 ```
 
 
@@ -918,9 +945,15 @@ gtsave(event_tbl_other |> as_gt(), "tables/table4.png")
 ```{r}
 #| label: time in condition summary
 
-event_tbl_duration <- 
+event_tbl_duration <-
 events_complete |> 
-  drop_na(setting_light) |> 
+  # drop_na(setting_light) |>
+  dplyr::mutate(setting_light = 
+                  case_when(type == "Bedtime" ~ "Bed",
+                            type == "Non-wear" ~ "Non-wear",
+                            .default = setting_light |> as.character()),
+                setting_light = 
+                  setting_light |> factor(levels = c("Bed", "Indoors", "Mixed", "Outdoors", "Non-wear"))) |> 
   dplyr::summarize(`Daily duration` = sum(status.duration, na.rm = TRUE),
                    .by = c(setting_light, record_id)) |> 
   dplyr::summarize(`Daily duration` = mean(`Daily duration`),
@@ -934,12 +967,13 @@ events_complete |>
                   sum(as.numeric(`Daily duration`)))
                   # vec_fmt_percent()
                 ) |> 
+  arrange(setting_light) |> 
   gt(rowname_col = "setting_light") |> 
   grand_summary_rows( 
                      fns = list(
       sum ~ sum(.)
     ),
-    fmt = list(~ fmt_percent(., columns = Percent), 
+    fmt = list(~ fmt_percent(., columns = Percent, decimals = 0), 
                ~ fmt_duration(., columns = `Daily duration`, 
                input_units = "secs",
                max_output_units = 2))
@@ -947,11 +981,707 @@ events_complete |>
   fmt_duration(`Daily duration`, 
                input_units = "secs",
                max_output_units = 2) |> 
-  fmt_percent(columns = Percent) |> 
+  fmt_percent(columns = Percent, decimals = 0) |> 
+  sub_missing() |> 
   tab_header(title = "Mean daily duration in condition")
 
 event_tbl_duration
 gtsave(event_tbl_duration, "tables/table5.png")
 
+```
+
+### Combining Events with light data
+
+In this step, we expand the light measurements with the event data. To this end, we need to specify start and end times for each log entry and thus state.
+
+```{r}
+#| label: combining light and log data
+
+events_light <-
+events_complete |> 
+  rename(Id = device_id) |>
+  group_by(Id) |> 
+  dplyr::mutate(setting_light2 = setting_light,
+                setting_light = 
+                  case_when(type == "Bedtime" ~ "Bed",
+                            type == "Non-wear" ~ "Non-wear",
+                            .default = setting_light |> as.character()),
+                setting_light = 
+                  setting_light |> factor(levels = c("Bed", "Indoors", "Mixed", "Outdoors", "Non-wear")),
+                end = case_when(
+                  is.na(lead(Datetime)) ~ (end_dt + ddays(1)),
+                  # Datetime >= end_dt ~ Datetime,
+                  !is.na(lead(Datetime)) ~ lead(Datetime)
+                ) |> as.POSIXct(tz = "UTC"),
+                Id = factor(Id),
+                .after = Datetime
+                ) |> 
+  rename(start = Datetime) |> 
+  select(-c(age:file_path, status.duration, UTC_dt))
+
+#adding event-specific information
+light_data_ext <- 
+light_data |> 
+  select(Id, Datetime, Datetime_UTC, MEDI) |> 
+  add_states(events_light, Datetime.colname = Datetime_UTC) |> 
+  rename(DatetimeUTC = Datetime) |>
+  rename(Datetime = Datetime_UTC) |> 
+  unite(
+    scenario_daylight2, setting_light, scenario_daylight, sep = ": ", remove = FALSE, na.rm = TRUE
+  )  |>
+  dplyr::mutate(
+    scenario_daylight2 =
+      case_when(setting_light %in% c("Outdoors", "Mixed", "Indoors", "Bed") &
+                  !is.na(scenario_daylight) ~
+                  paste(setting_light, scenario_daylight, sep = ": ")),
+    scenario_electric2 = 
+      case_when(setting_light %in% c("Outdoors", "Indoors", "Mixed", "Bed") &
+                  !is.na(scenario_electric) ~
+                  paste(setting_light, scenario_electric, sep = ": "))
+  )
+
+#adding participant-specific information
+participant_data <- 
+  data_devices_cleaned |> 
+  select(-record_id, -data) |> 
+  rename(Id = device_id) |> 
+  dplyr::mutate(Id = factor(Id))
+
+light_data_ext <-
+  light_data_ext |> 
+  left_join(participant_data, by = "Id")
+
+```
+
+
+```{r}
+#| label: plotting light data
+#| warning: false
+#| message: false
+#| fig-height: 20
+#| fig-width: 20
+
+participants <- light_data_ext |> pull(Id) |> levels()
+
+light_data_ext |>
+  gg_days(facetting = FALSE,
+          y.axis.label = "Melanopic EDI (lx)") |>
+  gg_state(setting_light, aes_fill = setting_light, alpha = 0.5) +
+  scale_fill_manual(
+    values = c(
+      Bed = "darkgrey",
+      `Non-wear` = "tomato",
+      Indoors = "gold",
+      Outdoors = "skyblue2",
+      Mixed = "lightgreen"
+    )
+  ) + 
+  facet_wrap(~Id, ncol = 5) +
+  labs(fill = "Condition")
+
+ggsave("figures/Fig3_overview.png", width = 10, height = 10, scale = 2)
+
+light_data_ext |>
+  filter(Id %in% participants[1:24]) |> 
+  gg_days(facetting = FALSE,
+          y.axis.label = "Melanopic EDI (lx)") |>
+  gg_state(setting_light, aes_fill = setting_light, alpha = 0.5) +
+  scale_fill_manual(
+    values = c(
+      Bed = "darkgrey",
+      `Non-wear` = "tomato",
+      Indoors = "gold",
+      Outdoors = "skyblue2",
+      Mixed = "lightgreen"
+    )
+  ) + 
+  facet_wrap(~Id, ncol = 8) +
+  labs(fill = "Condition")
+
+ggsave("figures/Fig3a_overview.png", width = 14, height = 5, scale = 2)
+
+light_data_ext |>
+  filter(Id %in% participants[25:47]) |> 
+  gg_days(facetting = FALSE,
+          y.axis.label = "Melanopic EDI (lx)") |>
+  gg_state(setting_light, aes_fill = setting_light, alpha = 0.5) +
+  scale_fill_manual(
+    values = c(
+      Bed = "darkgrey",
+      `Non-wear` = "tomato",
+      Indoors = "gold",
+      Outdoors = "skyblue2",
+      Mixed = "lightgreen"
+    )
+  ) + 
+  facet_wrap(~Id, ncol = 8) +
+  labs(fill = "Condition")
+
+ggsave("figures/Fig3b_overview.png", width = 14, height = 5, scale = 2)
+  
+```
+
+## State analysis
+
+In this section, we look at melanopic EDI for various conditions.
+
+First, we create a function that takes a variable and a filter variable for that column, and creates a histogram off that basis.
+
+```{r}
+#| label: Histogram plot function
+histogram_plot <- function(variable, filter) {
+light_data_ext |> 
+  # drop_na({{ variable }}) |> 
+  filter({{ variable }} == filter) |>
+  ggplot(aes(y=1, x = MEDI, slab_fill = after_stat(level))) +
+  # geom_violin() +
+  stat_histinterval(na.rm = TRUE, breaks = 20, align = align_center(at = 0))+
+  stat_pointinterval(na.rm = TRUE, point_size = 10, colour = "red") +
+  scale_x_continuous(trans = "symlog", breaks = c(0, 10^(0:5)),
+                     labels = expression(0,10^0,10^1, 10^2, 10^3, 10^4, 10^5),
+                     limits = c(0, 10^5)) +
+  theme_void() +
+  scale_color_manual(values = scales::brewer_pal()(3)[-1], aesthetics = "slab_fill") +
+  theme_sub_axis_x(text = element_text(size = 30)) +
+  guides(slab_fill = "none") +
+  ylim(c(1,2))
+}
+```
+
+The second plot function takes the same inputs, and creates a doubleplot showing *when* these instances occur.
+
+```{r}
+#| label: Timeline plot function
+light_data_1day <- 
+light_data_ext |> 
+  aggregate_Datetime(unit = "1 hour")
+
+timeline_plot <- function(variable, filter) {
+light_data_1day |> 
+  dplyr::mutate(
+    state = {{ variable }} == filter,
+    state = ifelse(is.na(state), FALSE, state)
+  ) |> 
+  group_by(state) |>
+  select(state, Datetime, MEDI) |> 
+  aggregate_Date(
+    date.handler = \(x) "2025-09-22",
+    numeric.handler = \(x) median(x, na.rm = TRUE),
+    n = n(),
+    lower = quantile(MEDI, p = 0.25, na.rm = TRUE),
+    upper = quantile(MEDI, p = 0.75, na.rm = TRUE)
+  ) |> 
+    dplyr::mutate(n = n/sum(n)) |> 
+  gap_handler(full.days = TRUE) |> 
+  gg_day(
+    facetting = FALSE,
+    geom = "blank",
+    jco_color = FALSE, x.axis.breaks = hms::hms(hours = seq(0, 24, by = 6))
+  ) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = state), 
+              alpha = 0.25
+              ) +
+  geom_hline(yintercept = 0) +
+  geom_line(
+    aes(colour = state), lwd = 0.5
+  )+
+  geom_point(
+            aes(size = n, colour = state)) +
+  scale_fill_manual(values = c(`TRUE` = "#EFC000FF",
+                               `FALSE` = "darkgrey")) +
+  scale_color_manual(values = c(`TRUE` = "#EFC000FF",
+                                `FALSE` = "darkgrey")) +
+  coord_cartesian(ylim = c(0, 10^5)) +
+  scale_size_continuous(range = c(3, 20), limits = c(0,1)) +
+  scale_alpha_continuous(range = c(0.01, 0.5)) +
+  guides(lwd = "none", colour = "none", fill = "none", alpha = "none",
+         size = "none") +
+  theme_void() +
+  theme_sub_axis(text = element_text(size = 30)) +
+  theme_sub_plot(margin = margin(r = 35)) +
+  scale_y_continuous(trans = "symlog", breaks = c(0, 10^(0:5)),
+                     labels = expression(0,10^0,10^1, 10^2, 10^3, 10^4, 10^5),
+                     limits = c(0, 10^5))
+}
+```
+
+
+Next, we create a function that also takes a variable, and creates a table containing durations, episodes, and some key metrics.
+
+```{r}
+#| label: Preprocessing function for the table
+duration_tibble <- function(variable) {
+  instances <-
+    light_data_ext |>
+    # group_by() |>
+    extract_states({{ variable }}) |>
+    group_by({{ variable }}) |>
+    summarize_numeric(prefix = "",
+                      remove = c("start", "end", "epoch"))
+  # drop_na()
+  
+  metrics <-
+    light_data_ext |>
+    group_by({{ variable }}) |>
+    dplyr::summarize(
+      mean = mean(MEDI, na.rm = TRUE),
+      min = min(MEDI, na.rm = TRUE),
+      q025 = quantile(MEDI, probs = 0.025, na.rm = TRUE),
+      q250 = quantile(MEDI, probs = 0.17, na.rm = TRUE),
+      median = median(MEDI, na.rm = TRUE),
+      q750 = quantile(MEDI, probs = 0.83, na.rm = TRUE),
+      q975 = quantile(MEDI, probs = 0.975, na.rm = TRUE),
+      max = max(MEDI, na.rm = TRUE),
+    )
+  # drop_na()
+  
+  variable_chr <- rlang::ensym(variable) |> as_string()
+  
+  left_join(instances, metrics, by = variable_chr) |> 
+  drop_na()
+}
+```
+
+Lastly, a function to create the actual table. It takes both the `duration_tibble()` and `histogram_plot()` functions and creates a `gt` html table based on it.
+
+```{r}
+#| label: Table function
+duration_table <- function(variable) {
+  
+  variable_chr <- rlang::ensym(variable) |> as_string()
+  
+  duration_tibble({{ variable }}) |>
+    arrange(desc(median)) |> 
+    gt(rowname_col = variable_chr) |>
+    fmt_number(mean:max, decimals = 0) |>
+    cols_add(Plot = {{ variable }}, 
+             Plot2 = {{ variable }},
+             .after = max) |>
+    cols_add(rel_duration = total_duration/sum(total_duration), 
+             .after = total_duration) |>
+    fmt_percent(rel_duration, decimals = 0) |> 
+    cols_label(
+      duration = "Episode duration",
+      total_duration = "Total duration",
+      episodes = "Episodes",
+      mean = "Mean",
+      min = "0%",
+      q025 = "2.5%",
+      q250 = "17%",
+      median = "Median",
+      q750 = "83%",
+      q975 = "97.5%",
+      max = "100%",
+      Plot = "Histogram",
+      Plot2 = "Timeline",
+      rel_duration = "Relative duration"
+    ) |>
+    text_transform(locations = cells_body(Plot), fn = \(x) {
+      gt::ggplot_image({
+        x %>%
+          map(\(y) histogram_plot({{ variable }}, y))
+      }, height = gt::px(75), aspect_ratio = 2)
+    }) |>
+    text_transform(locations = cells_body(Plot2), fn = \(x) {
+      gt::ggplot_image({
+        x %>%
+          map(\(y) timeline_plot({{ variable }}, y))
+      }, height = gt::px(75), aspect_ratio = 2)
+    }) |>
+    fmt_duration(2:3, input_units = "seconds", max_output_units = 2) |>
+    tab_footnote(
+      "Scaled histograms show 66% of data in dark blue, 95% of data in dark & light blue, and the most extreme 5% of data in grey. The median is shown as a red dot.",
+      locations = cells_column_labels(Plot)
+    ) |>
+    tab_footnote(
+      "Timeline plots show the median of the condition (yellow dot) against the rest of the data (grey dot). Colored bands show the interquartile range. Size of the dots indicates the relative number of instances, i.e., large dots indicate many occurances at a given time (relative to other times).",
+      locations = cells_column_labels(Plot2)
+    ) |>
+    tab_footnote(
+      "Average duration of an episode in this category. eps. = Episode(s)",
+      locations = cells_column_labels(duration)
+    ) |> 
+    tab_footnote(
+      "An episode refers to a log entry in a category, until a different entry",
+      locations = cells_column_labels(episodes)
+    ) |> 
+    # cols_units(mean = "lx",
+    #            median = "lx") |>
+    gt::tab_spanner("Distribution", min:max) |> 
+    tab_footnote(
+      "Melanopic equivalent daylight illuminance (lx)",
+      locations = list(cells_column_labels(c(mean)),
+                       cells_column_spanners()
+      )
+    ) |> 
+    cols_merge_n_pct(total_duration, rel_duration) |> 
+    cols_merge(
+      c(duration, episodes), pattern = "{1} ({2} eps.)"
+    ) |> 
+    cols_align("center") |> 
+    tab_style(
+      style = cell_fill(color = "grey"),
+      locations = list(#cells_body(columns = c(min, max)),
+                       cells_column_labels(c(min, max)))
+    ) |> 
+    tab_style(
+      style = cell_fill(color = "tomato"),
+      locations = list(#cells_body(median),
+                       cells_column_labels(median))
+    ) |> 
+    tab_style(
+      style = cell_text(weight = "bold"),
+      locations = list(cells_body(median),
+                       cells_stub(),
+                       cells_column_labels(median),
+                       cells_column_spanners())
+    ) |> 
+    tab_style(
+      style = cell_fill(color = "#4880B8"),
+      locations = list(#cells_body(columns = c(q250, q750)),
+                       cells_column_labels(c(q250, q750)))
+    ) |> 
+    tab_style(
+      style = cell_fill(color = "#C2DAE9"),
+      locations = list(#cells_body(columns = c(q025, q975)),
+                       cells_column_labels(c(q025, q975)))
+    ) |> 
+      cols_move_to_end(c(mean, duration, total_duration)) |> 
+    tab_header("Summary of melanopic EDI across log entries",
+               subtitle = glue("Question/Characteristic: {label(light_data_ext[[variable_chr]])}")
+    ) |> 
+    tab_style(
+              style = cell_text(color = "red3"), 
+              locations = cells_stub(
+              # columns = total_duration, # the column whose text you want to style
+              rows    = rel_duration < 0.05   # condition using another column
+    )) |> 
+        tab_footnote(
+      "Red indicates this category represents < 5% of entries",
+      locations = list(cells_stub(rows    = rel_duration < 0.05)
+      )
+    )
+}
+```
+
+
+```{r}
+#| label: Creating the overview tables
+#| message: false
+#| warning: false
+label(light_data_ext$setting_light) <- "What is your general context?"
+label(light_data_ext$autonomy) <- "Were the lighting conditions in this setting self-selected?"
+label(light_data_ext$setting_indoors_workingspace) <- "Indoors setting (work)"
+label(light_data_ext$scenario_daylight2) <- "Daylight conditions (stratified)"
+label(light_data_ext$scenario_electric2) <- "Electric lighting conditions (stratified)"
+label(light_data_ext$country) <- "Country"
+label(light_data_ext$sex) <- "Sex"
+
+c("social_context", "type", "setting_light", "setting_light2", "country", "sex", "autonomy", 
+  "setting_indoors", "setting_location", "setting_outdoors", "setting_mixed",
+  "nighttime", "nonwear_activity", "type.detail", "setting_specific", "setting_indoors_home", "setting_indoors_workingspace", "setting_indoors_healthfacility", "setting_indoors_learningfacility", "setting_indoors_retailfacility", "scenario_daylight", "scenario_electric", "screen_phone", "screen_tablet", "screen_pc", "screen_tv", "behaviour_change", "travel_time_zone", "scenario_daylight2", "scenario_electric2", "wear_activity"
+  )|>
+  walk(\(x) {
+    symbol <- sym(x)
+    table <- duration_table(!!symbol)
+    table
+    gtsave(table, glue("tables/table_duration_{x}.png"), vwidth = 1200)
+    })
+```
+
+## Time above threshold
+
+In this section we calculate the time above threshold for the single day of `22 September 2025` across latitude and country.
+
+```{r}
+#| label: Time above 250 lx mel EDI across participants
+
+TAT250 <- 
+light_data_ext |> 
+  filter_Date(start = "2025-09-22", length = "1day") |> 
+  fill(latitude, longitude, city, country, .direction = "downup") |> 
+  dplyr::summarize(
+    duration_above_threshold(
+      MEDI, Datetime, threshold = 250, na.rm = TRUE,
+      as.df = TRUE
+    ),
+    latitude = unique(latitude),
+    longitude = unique(longitude),
+    city = unique(city),
+    country = unique(country)
+  ) |> 
+  mutate(n = n(), .by = country)
+
+TAT250_plot <- function(value){
+TAT250 |> 
+  ggplot(aes(x= fct_reorder(Id, duration_above_250), y = duration_above_250))+
+  geom_col(aes(fill = {{ value }})) +
+  scale_fill_viridis_b(labels = \(x) paste0(x, "°"))+
+  scale_y_time(labels = \(x) x |> as_datetime(tz = "UTC") |> format("%H:%M"),
+               expand = FALSE) + 
+  theme_minimal() +
+  theme_sub_axis_x(text = element_blank(), line = element_line()) +
+  theme_sub_panel(grid.major.x = element_blank())+
+  labs(x = "Participants", y = "Time above 250lx mel EDI (HH:MM)")
+}
+
+# TAT250_plot(longitude) / (TAT250_plot(latitude) + ylim(c(10*3600, 0))) + plot_layout(axis = "collect", heights = c(1,0.05,1))
+
+TAT250_plot(latitude)
+ggsave("figures/Fig4_TAT250.png", width = 5, height = 2, scale = 1.5)
+```
+
+
+```{r}
+#| label: Time above 250 lx mel EDI across countries
+TAT250 |> 
+  ggplot(aes(y= fct_reorder(country, duration_above_250), x = duration_above_250))+
+  geom_boxplot(aes(col = n)) +
+  scale_color_viridis_b(breaks = c(1, 3, 5, 10, 15))+
+  scale_x_time(labels = \(x) x |> as_datetime(tz = "UTC") |> format("%H:%M")) + 
+  theme_minimal() +
+  # theme_sub_axis_x(text = element_blank(), line = element_line()) +
+  theme_sub_panel(grid.major.y = element_blank())+
+  labs(y = NULL, x = "Time above 250lx mel EDI (HH:MM)")
+
+ggsave("figures/Fig5_TAT250_country.png", width = 4, height = 3, scale = 1.5)
+
+```
+
+## Global perspectives
+
+In this section we look at the global distribution of `melanopic EDI`, `Time above 250lx`, and the `Dose` of light.
+
+### Shade data
+
+In this section we calculate day and night times around the globe. As we want to use this information for a looped visualization, we will set a slightly different cutoff and only collect 48 hours.
+
+```{r}
+#| label: Set parameters for day/night
+
+# Time window (UTC)
+t_start <- ymd_hms("2025-09-21 12:00:00", tz = "UTC")
+t_end   <- ymd_hms("2025-09-23 12:00:00", tz = "UTC")
+# Step between frames (adjust to taste: "30 mins", "1 hour", etc.)
+time_step <- "15 mins"
+
+# Spatial grid resolution (degrees). 2° keeps things light; 1° looks smoother but is heavier.
+lon_step <- 0.5
+lat_step <- 0.5
+
+# Darkness mapping: fully dark at civil twilight (-6°), linearly increasing from 0 to 1 as altitude goes 0 -> -6°.
+dark_full_altitude <- -6 # degrees
+
+# ---------- build lon/lat grid ----------
+lons <- seq(-180, 180, by = lon_step)
+lats <- seq(-90,  90,  by = lat_step)
+grid <- expand.grid(lon = lons, lat = lats) |>
+  as_tibble()
+
+# ---------- time sequence ----------
+times_utc <- seq(t_start, t_end, by = time_step)
+
+# ---------- compute sun altitude for each (lon, lat, time) ----------
+# We'll loop over time slices (efficient enough for this grid size),
+# compute altitude (in radians from suncalc), convert to degrees,
+# then map to a "darkness" alpha value.
+```
+
+```{r}
+#| label: Function to calculate sunposition
+compute_slice <- function(tt) {
+  
+  # build a data frame with the timestamp repeated for each grid point
+  df <- data.frame(
+    date = rep(tt, nrow(grid)),
+    lat  = grid$lat,
+    lon  = grid$lon
+  )
+  
+  # call suncalc with a data frame instead of separate lat/lon vectors
+  sp <- suncalc::getSunlightPosition(data = df, keep = c("altitude"))
+  
+  # altitude is returned in radians; convert to degrees
+  alt_deg <- sp$altitude * 180 / pi
+  
+  # darkness mapping (same as before)
+  darkness <- pmin(1, pmax(0, -alt_deg / 6))
+  
+  tibble(
+    lon = grid$lon,
+    lat = grid$lat,
+    time = tt,
+    alt_deg = alt_deg,
+    darkness = darkness
+  )
+}
+```
+
+```{r}
+#| label: Compute sunpositions
+
+# Create the progress bar once
+pb <- progress_bar$new(
+  format = "Computing slices [:bar] :percent eta: :eta",
+  total = length(times_utc), clear = FALSE, width = 70
+)
+
+shade_list <- vector("list", length(times_utc))
+
+for (i in seq_along(times_utc)) {
+  # Compute one time slice (without pb$tick() inside)
+  shade_list[[i]] <- compute_slice(times_utc[[i]])
+  # Now update the bar
+  pb$tick()
+}
+
+shade_df <- dplyr::bind_rows(shade_list)
+
+shade_df <- bind_rows(lapply(times_utc, compute_slice))
+
+```
+
+### Melanopic EDI
+
+#### Light data
+
+```{r}
+#| label: Collect mel EDI across lat, lon, and time
+light_data_globe <- 
+light_data_ext |> 
+    filter_Datetime(DatetimeUTC, start = t_start, end = t_end, tz = "UTC") |> 
+    select(Id, DatetimeUTC, latitude, longitude, MEDI) |> 
+    dplyr::mutate(lat2 = plyr::round_any(latitude, 12), 
+           lon2 = plyr::round_any(longitude, 12)) |> 
+    ungroup() |> 
+    dplyr::summarize(
+        .by = c(DatetimeUTC, lat2, lon2),
+        lat = mean(latitude),
+        lon = mean(longitude),
+        MEDI = mean(MEDI, na.rm = TRUE),
+        n = n()
+    ) |> 
+    rename(time = DatetimeUTC)
+
+light_globe <- st_as_sf(light_data_globe, coords = c("lon", "lat"), crs = 4326)
+light_proj <- st_transform(light_globe, crs = "+proj=eqc")
+
+```
+
+#### Plot
+
+```{r}
+#| label: Plot mel EDI across the globe
+#| warning: false
+p <- 
+  ggplot() +
+  geom_sf(
+    data = world_proj,
+    fill = "grey",
+    color = NA,
+    size = 0.25,
+    alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  geom_sf(data = tz_lines,
+          colour = "deepskyblue3",
+          alpha = 0.75,
+          linewidth = 0.1) +
+  geom_tile(
+    data = shade_df,
+    mapping = aes(x = lon, y = lat, alpha = darkness),
+    fill = "black",
+    width = lon_step, height = lat_step
+  ) +
+  geom_sf(
+    data = light_proj,
+    aes(size = n, fill = MEDI, colour = MEDI),
+    alpha = 0.9,
+    shape = 21,
+    stroke = 0.2
+  ) +
+  # tile overlay for night shading (black with varying alpha)
+  geom_sf_text(
+    data = locations_proj,
+    aes(label = n),
+    size = 1.9,
+    fontface = 2,
+    color = "white",
+    alpha = 0.75
+  ) +
+  scale_alpha(range = c(0, 0.6), limits = c(0, 1), guide = "none") +
+  coord_sf(crs = 4326, expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  # coord_sf(crs = 4326, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  labs(
+    title = "{format(frame_time, '%Y-%m-%d %H:%M:%S')} (UTC)",
+    x = NULL, 
+    y = NULL
+  ) +
+  guides(size = "none",
+        )+
+  labs(fill = "mel EDI (lx)", colour = "mel EDI (lx)")+
+  scale_fill_viridis_b(trans = "symlog", breaks = c(0, 10^(0:5)),
+                       labels = 
+                         function(x) format(x, scientific = FALSE, big.mark = " "),
+                       limits = c(0, 10^5)) +
+  scale_colour_viridis_b(trans = "symlog", breaks = c(0, 10^(0:5)),
+                       labels = 
+                         function(x) format(x, scientific = FALSE, big.mark = " "),
+                       limits = c(0, 10^5)) +
+  scale_size_continuous(range = c(3, 7.5)) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.major = element_line(size = 0.1, colour = "grey85"),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold"),
+    legend.text.align = 1,
+    legend.text.position = "left",
+    legend.position = "inside",
+    legend.position.inside = c(0.1,0.35),
+    legend.background = element_rect(fill = alpha("white", alpha = 0.25),
+                                     colour = NA)
+  ) +
+  transition_time(time)
+
+# Frame rate and dimensions
+fps_out <- 12
+width_px <- 1400
+height_px <- 800
+
+if(interactive()) {
+
+anim <- animate(
+  p,
+  duration = 48,
+  fps = fps_out,
+  width = width_px,
+  height = height_px,
+  res = 150,
+  renderer = gifski_renderer(loop = TRUE)
+)
+
+out_file <- "figures/Fig6_melEDI_global.gif"
+
+anim_save(out_file, animation = anim)
+
+}
+```
+
+## Export for dashboard
+
+In this section we export key data for the dashboard.
+
+```{r}
+save(
+     data_devices,
+     events_complete,
+     light_data_ext,
+     histogram_plot,
+     light_data_1day,
+     timeline_plot,
+     duration_tibble,
+     duration_table,
+     TAT250,
+     file = "data/cleaned/dashboard.RData")
 ```
 

@@ -1,0 +1,321 @@
+---
+date: "2025-11-03"
+format: 
+  dashboard:
+    orientation: rows
+---
+
+```{=html}
+<style>
+  /* Fixed, non‑scrolling backdrop via a pseudo‑element */
+  html, body { height: 100%; }
+  body { position: relative; z-index: 0; }
+  body::before {
+    content: "";
+    position: fixed;   /* stays put while content scrolls */
+    inset: 0;
+    z-index: -1;       /* behind all content */
+    pointer-events: none;
+
+    /* Flyer-style background */
+    background:
+      radial-gradient(800px 800px at 80% 10%, #EFE9CE, transparent 60%),
+      radial-gradient(600px 600px at 12% 90%, #EFC695, transparent 60%),
+      radial-gradient(700px 700px at -10% -10%, #EFE9CE, transparent 50%),
+      #F0F3F8;
+    background-repeat: no-repeat;
+    background-size: cover;   /* scale to cover viewport */
+    background-position: center;
+  }
+</style>
+```
+
+
+```{r}
+#| label: setup
+#| message: false
+#| output: false
+#| warning: false
+library(tidyverse)
+library(plotly)
+load(file = "data/cleaned/dashboard.RData")
+```
+
+# Overview
+
+## Row - Value cards
+
+```{r}
+#| content: valuebox
+#| title: "Time zones"
+#| classes: "my-valuebox1"
+list(
+  icon = "globe",
+  color = "#FFFFFF",
+  value = 10
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Countries"
+#| classes: "my-valuebox2"
+list(
+  icon = "map",
+  color = "#FFFFFF",
+  value = 15
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Participants"
+#| classes: "my-valuebox3"
+list(
+  icon = "people-fill",
+  color = "#FFFFFF",
+  value = 47
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Activity logs"
+#| classes: "my-valuebox4"
+list(
+  icon = "pencil-square",
+  color = "#FFFFFF",
+  value = 1763
+)
+```
+
+## Row - Overview plots
+
+#### Population overview
+
+::: {.card title="Distribution of location across the globe"}
+![](figures/Fig2_location.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+
+#### Demographic
+
+::: {.card title="Distribution of age and sex"}
+![](figures/Fig1_age.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+# Participant logs {orientation="columns"}
+
+## Column 1
+
+::: {.card title="Activity logging"}
+![](tables/table1.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Daily duration in condition"}
+![](tables/table5.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+## Column 2
+
+::: {.card title="Log events depending on indoor/outdoor"}
+![](tables/table2.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+
+# Global light exposure
+
+## Tabs {.tabset title="Melanopic EDI:"}
+
+::: {.card title="Across time and location"}
+![](figures/Fig6_melEDI_global.gif){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="On 22 September"}
+![](figures/patterns.gif){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Across participants (1)"}
+![](figures/Fig3a_overview.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Across participants (2)"}
+![](figures/Fig3b_overview.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+
+# Time above 250lx mel EDI
+
+## Row
+
+### Column 1
+
+```{r}
+#| title: TAT250 by participant
+TAT250_plotly <- 
+TAT250 |> 
+  mutate(Id = fct_reorder(Id, duration_above_250)) |> 
+  ggplot(aes(x= Id, y = duration_above_250))+
+  geom_col(aes(fill = latitude)) +
+  scale_fill_viridis_b(labels = \(x) paste0(x, "°"))+
+  scale_y_time(labels = \(x) x |> as_datetime(tz = "UTC") |> format("%H:%M"),
+               expand = FALSE) + 
+  theme_minimal() +
+  theme_sub_axis_x(text = element_blank(), line = element_line()) +
+  theme_sub_panel(grid.major.x = element_blank())+
+  labs(x = "Participants", y = "Time above 250lx mel EDI (HH:MM)")
+  
+plotly::ggplotly(TAT250_plotly)
+
+```
+
+### Column 2
+
+::: {.card title="TAT250 by country"}
+![](figures/Fig5_TAT250_country.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+# Contextual exposure {scrolling="true"}
+
+## {.tabset title="Categories"}
+
+### Indoor-outdoor {.tabset title="Indoor<>outdoor"}
+
+::: {.card title="General"}
+![](tables/table_duration_setting_light2.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Expanded"}
+![](tables/table_duration_setting_light.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Daylight"}
+![](tables/table_duration_scenario_daylight.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Daylight x context"}
+![](tables/table_duration_scenario_daylight2.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Electrical lighting"}
+![](tables/table_duration_scenario_electric.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Electric x context"}
+![](tables/table_duration_scenario_electric2.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Locations"}
+![](tables/table_duration_setting_location.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+### Outdoors {.tabset title="Outdoors"}
+
+::: {.card title="Outdoors"}
+![](tables/table_duration_setting_outdoors.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Mixed"}
+![](tables/table_duration_setting_mixed.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+### Indoors {.tabset title="Indoors"}
+
+::: {.card title="General"}
+![](tables/table_duration_setting_indoors.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Home"}
+![](tables/table_duration_setting_indoors_home.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Workplace"}
+![](tables/table_duration_setting_indoors_workingspace.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Retail"}
+![](tables/table_duration_setting_indoors_retailfacility.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Education"}
+![](tables/table_duration_setting_indoors_learningfacility.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Healthcare"}
+![](tables/table_duration_setting_indoors_healthfacility.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Overall"}
+![](tables/table_duration_setting_specific.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+### Wear-related {.tabset title="Wear-related"}
+
+::: {.card title="Wear type"}
+![](tables/table_duration_type.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Nighttime"}
+![](tables/table_duration_nighttime.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Non-wear"}
+![](tables/table_duration_nonwear_activity.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Overall"}
+![](tables/table_duration_type.detail.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+### Screen use {.tabset title="Screen use"}
+
+::: {.card title="TV"}
+![](tables/table_duration_screen_tv.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Computer"}
+![](tables/table_duration_screen_pc.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Phone"}
+![](tables/table_duration_screen_phone.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Tablet"}
+![](tables/table_duration_screen_tablet.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+
+### General {.tabset title="General"}
+
+::: {.card title="Activity"}
+![](tables/table_duration_wear_activity.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+
+::: {.card title="Sex"}
+![](tables/table_duration_sex.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Country"}
+![](tables/table_duration_country.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Social context"}
+![](tables/table_duration_social_context.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Autonomy"}
+![](tables/table_duration_autonomy.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Traveling"}
+![](tables/table_duration_travel_time_zone.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+::: {.card title="Behaviour change"}
+![](tables/table_duration_behaviour_change.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+## Indoor-Outdoor
+
