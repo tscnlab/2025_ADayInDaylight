@@ -1,5 +1,6 @@
 ---
-# page-layout: full
+page-layout: full
+# page-layout: custom
 format:
   html:
     toc: false
@@ -7,21 +8,24 @@ format:
     grid:
       body-width: 1200px
 author: 
-  - name: "Johannes Zauner"
-    affiliation: "Technical University of Munich & Max Planck Institute for Biological Cybernetics, Germany"
-    orcid: "0000-0003-2171-4566"
   - name: "Resshaya Roobini Murukesu"
     affiliation: "TUMCREATE Ltd. (Singapore)"
     orcid: "0000-0002-0947-5817"
+  - name: "Johannes Zauner"
+    affiliation: "Technical University of Munich & Max Planck Institute for Biological Cybernetics, Germany"
+    orcid: "0000-0003-2171-4566"
   - name: "Manuel Spitschan"
     affiliation: "Technical University of Munich & Max Planck Institute for Biological Cybernetics, Germany"      
     orcid: "0000-0002-8572-9268"
 image: assets/flyer.png
+doi: 10.5281/zenodo.17464829
+date: 2025-11-03
 open-graph:
   title: "A Day in Daylight — Light Exposure Around the World"
   description: "A global, equinox‑day capture of human light exposure with interactive results and insights."
   image: assets/20251008_Announcement.png
 ---
+
 
 
 ```{=html}
@@ -49,7 +53,7 @@ open-graph:
   .hero {
     position: relative; padding: 4.5rem 0 3rem; margin-bottom: 1.5rem;
   }
-  .hero .wrap { max-width: 1100px; margin: 0 auto; }
+  .hero .wrap { max-width: 975px; margin: 0 auto; }
   .hero h1 { font-weight: 800; letter-spacing: .3px; margin-bottom: .5rem; }
   .hero p.lead { font-size: 1.25rem; opacity: .9; }
   .hero-card { background: rgba(255,255,255,.78); border-radius: 18px; box-shadow: 0 12px 28px rgba(0,0,0,.12); padding: 1.5rem; backdrop-filter: blur(6px); }
@@ -78,7 +82,7 @@ open-graph:
               <h2 class="mb-1">Light exposure around the world</h2>
             </div>
           </div>
-          <p class="lead mb-3">On the September 2025 equinox, over 50 participants across the globe logged and annotated their daily light exposure. Join us for <i>A Day in Daylight</i> where these global teams reveal their findings and explore what these patterns mean for health, lifestyle and our understanding of daylight. Hosted by <strong>Manuel Spitschan</strong> The dashboard aggregates these observations into comparable visuals and tables.</p>
+          <p class="lead mb-3">On the September 2025 equinox, over 50 participants across the globe logged and annotated their daily light exposure. Join us for <i>A Day in Daylight</i> where these global teams reveal their findings and explore what these patterns mean for health, lifestyle and our understanding of daylight. Hosted by <strong>Manuel Spitschan</strong> and <strong>Resshaya Roobini Murukesu</strong>. The dashboard aggregates these observations into comparable visuals and tables. Analysis by <strong>Johannes Zauner</strong>.</p>
           <p class="mb-1"><span class="pill">Live event: Monday, 3 November 2025 17:00 CET</span> <span class="pill">Dashboard: anytime</span></p>
           <div class="cta mt-3">
             <a class="btn btn-primary btn-lg" href="Dashboard.html">Open the Dashboard</a>

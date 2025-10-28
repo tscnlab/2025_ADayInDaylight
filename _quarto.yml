@@ -20,7 +20,7 @@ website:
       - text: Analysis script
         href: Analysis.qmd
       - text: "Event flyer"
-        href: assets/20251008_Announcement.png
+        href: assets/A day in daylight.pdf
         target: "_blank"
       - text: "Register"
         href: https://tum-conf.zoom.us/webinar/register/WN_5kg36iuNRACb18RXr4sqkA#/registration
@@ -53,4 +53,5 @@ execute:
   freeze: auto
 
 language:
-  title-block-published: "Last modified:"
+  title-block-published: "Event date:"
+  title-block-author-plural: "Dashboard by:"

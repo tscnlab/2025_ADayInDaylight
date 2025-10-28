@@ -1,0 +1,39 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: A day in daylight
+message: >-
+  If you use this dataset, please cite it using the metadata
+  from this file.
+type: dataset
+authors:
+  - given-names: Resshaya Roobini
+    family-names: Murukesu
+    email: resshaya.murukesu@tum-create.edu.sg
+    affiliation: TUMCREATE Ltd. (Singapore)
+    orcid: 'https://orcid.org/0000-0002-0947-5817'
+  - given-names: Johannes
+    family-names: Zauner
+    email: johannes.zauner@tum.de
+    affiliation: >-
+      Technical University of Munich & Max Planck Institute
+      for Biological Cybernetics, Germany
+    orcid: 'https://orcid.org/0000-0003-2171-4566'
+  - given-names: Manuel
+    family-names: Spitschan
+    email: manuel.spitschan@tum.de
+    affiliation: >-
+      Technical University of Munich & Max Planck Institute
+      for Biological Cybernetics, Germany
+    orcid: 'https://orcid.org/0000-0002-8572-9268'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.17464829
+    description: Zenodo Archive
+repository-code: 'https://github.com/tscnlab/2025_ADayInDaylight_Data'
+url: 'https://tscnlab.github.io/2025_ADayInDaylight/'
+repository-artifact: 'https://doi.org/10.5281/zenodo.17464829'
+license: CC-BY-4.0
+version: 1.0.0
+date-released: '2025-11-03'
