@@ -25,6 +25,8 @@ website:
       - text: "Register"
         href: https://tum-conf.zoom.us/webinar/register/WN_5kg36iuNRACb18RXr4sqkA#/registration
         target: "_blank"
+      - text: License
+        href: license.qmd
     right:
       - text: "![](assets/logo.png){height=40px}"
         href: https://tscnlab.github.io/LightLogR/
