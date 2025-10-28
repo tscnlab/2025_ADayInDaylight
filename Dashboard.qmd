@@ -128,7 +128,7 @@ list(
 ## Tabs {.tabset title="Melanopic EDI:"}
 
 ::: {.card title="Across time and location"}
-![](figures/Fig6_melEDI_global.gif){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+![](figures/Fig6_melEDI_global_48s.gif){style="width:100%;height:100%;object-fit:contain;object-position:center"}
 :::
 
 ::: {.card title="On 22 September"}
