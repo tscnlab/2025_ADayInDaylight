@@ -101,7 +101,7 @@ open-graph:
 ::: {.hero-card}
 ## About the event
 
-This event is part of the [Daylight Awareness Week 2025](https://daylight.academy/daylight-awareness-week-2025/), initiated by the [Daylight Academy](https://daylight.academy). The event is organized by the [Translational Sensory & Circadian Neuroscience Unit](https://www.tscnlab.org). Analyses of personal light exposure data were perfomed using the open-source software package [LightLogR](https://tscnlab.github.io/LightLogR/).
+This event is part of the [Daylight Awareness Week 2025](https://daylight.academy/daylight-awareness-week-2025/), initiated by the [Daylight Academy](https://daylight.academy). The event is organized by the [Translational Sensory & Circadian Neuroscience Unit (MPS/TUM/TUMCREATE)](https://www.tscnlab.org). Analyses of personal light exposure data were performed using the open-source software package [LightLogR](https://tscnlab.github.io/LightLogR/).
 
 ![](assets/logo.png){height=150px .pad-fig}
 ![](assets/logo_with_text-sd){height=125px .pad-fig}
