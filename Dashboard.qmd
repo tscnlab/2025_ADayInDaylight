@@ -123,6 +123,13 @@ list(
 :::
 
 
+## Column 3
+::: {.card title="Difficulties when logging"}
+![](tables/table_difficulties.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+
+
 # Global light exposure
 
 ## Tabs {.tabset title="Melanopic EDI:"}
@@ -325,6 +332,29 @@ In this section, only the full day of `22 September 2025` (local time) is consid
 ::: {.card title="Behaviour change"}
 ![](tables/table_duration_behaviour_change.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
 :::
+
+# Time zone travelling
+
+## 
+
+::: {.card title="Travellers across time zones"}
+![](tables/table_flights.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+##
+
+###
+
+::: {.card title="Travellers across time zones"}
+![](figures/Fig3c_flyers.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
+###
+
+::: {.card title="Travellers across time zones"}
+![](figures/Fig3d_flyers.png){style="width:100%;height:100%;object-fit:contain;object-position:center"}
+:::
+
 
 # The run for the sun
 
