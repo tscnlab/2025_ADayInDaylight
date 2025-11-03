@@ -35,5 +35,5 @@ repository-code: 'https://github.com/tscnlab/2025_ADayInDaylight_Data'
 url: 'https://tscnlab.github.io/2025_ADayInDaylight/'
 repository-artifact: 'https://doi.org/10.5281/zenodo.17464829'
 license: CC-BY-4.0
-version: 1.0.0
+version: 1.0.1
 date-released: '2025-11-03'
