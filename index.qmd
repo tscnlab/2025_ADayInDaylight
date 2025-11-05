@@ -87,7 +87,7 @@ open-graph:
           <div class="cta mt-3">
             <a class="btn btn-primary btn-lg" href="Dashboard.html">Open the Dashboard</a>
             <a class="btn btn-outline-secondary btn-lg" href="https://www.hs.mh.tum.de/en/mh/news-en/article/a-day-in-daylight-globale-daten-zum-einfluss-von-tageslicht-auf-gesundheit-und-lebensweise/">Event details</a>
-            <a class="btn btn-outline-secondary btn-lg" href="https://tum-conf.zoom.us/webinar/register/WN_5kg36iuNRACb18RXr4sqkA#/registration">Register for the event</a>
+            <a class="btn btn-outline-secondary btn-lg" href="recordings.html">Watch the recording</a>
             <a class="btn btn-outline-secondary btn-lg" href="https://daylight.academy/daylight-awareness-week-2025/">Daylight awareness week</a>
           </div>
         </div>

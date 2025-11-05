@@ -22,8 +22,8 @@ website:
       - text: "Event flyer"
         href: assets/A day in daylight.pdf
         target: "_blank"
-      - text: "Register"
-        href: https://tum-conf.zoom.us/webinar/register/WN_5kg36iuNRACb18RXr4sqkA#/registration
+      - text: "Recording"
+        href: recordings.qmd
         target: "_blank"
       - text: License
         href: license.qmd

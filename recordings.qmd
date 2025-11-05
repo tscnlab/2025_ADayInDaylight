@@ -1,0 +1,5 @@
+---
+title: "Event Recording"
+---
+
+{{< video https://www.youtube.com/watch?v=a6FUEgsS1Io >}}
