@@ -86,8 +86,8 @@ open-graph:
           <p class="mb-1"><span class="pill">Live event: Monday, 3 November 2025 17:00 CET</span> <span class="pill">Dashboard: anytime</span></p>
           <div class="cta mt-3">
             <a class="btn btn-primary btn-lg" href="Dashboard.html">Open the Dashboard</a>
-            <a class="btn btn-outline-secondary btn-lg" href="https://www.hs.mh.tum.de/en/mh/news-en/article/a-day-in-daylight-globale-daten-zum-einfluss-von-tageslicht-auf-gesundheit-und-lebensweise/">Event details</a>
-            <a class="btn btn-outline-secondary btn-lg" href="recordings.html">Watch the recording</a>
+            <a class="btn btn-outline-secondary btn-lg" href="visual_harvest.html">Visual harvest <img src="assets/visual_harvest.png"/></a>
+            <a class="btn btn-outline-secondary btn-lg" href="recordings.html">Recording</a>
             <a class="btn btn-outline-secondary btn-lg" href="https://daylight.academy/daylight-awareness-week-2025/">Daylight awareness week</a>
           </div>
         </div>

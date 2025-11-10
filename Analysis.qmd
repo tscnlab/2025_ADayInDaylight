@@ -12,10 +12,9 @@ author:
     orcid: "0000-0002-8572-9268"
 format: 
   html:
-    self-contained: true
     code-tools: true
     toc: true
-    code-linking: true
+    code-link: true
 ---
 
 ## Preface

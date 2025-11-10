@@ -19,6 +19,8 @@ website:
         href: Dashboard.qmd
       - text: Analysis script
         href: Analysis.qmd
+      - text: Visual harvest
+        href: visual_harvest.qmd
       - text: "Event flyer"
         href: assets/A day in daylight.pdf
         target: "_blank"
