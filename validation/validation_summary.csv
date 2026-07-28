@@ -1,0 +1,23 @@
+check_id,check,observed,expected_or_rule,status,interpretation
+V01,Wearable export count,50,50 files,pass,Matches device-information records
+V02,Included participant count,47,47 participants,pass,Matches hosted dashboard
+V03,Country coverage,15,15 countries,pass,Matches hosted dashboard
+V04,IANA time-zone identifiers,17,Report separately from UTC offsets,pass,Seventeen identifiers collapse to ten UTC offsets on 22 September 2025
+V05,UTC offsets,10,10 offsets,pass,Matches hosted dashboard headline metric
+V06,Raw activity-log entries,1827,Raw repeat-instrument count,pass,"Raw survey export contains 1,827 entries"
+V07,Linked activity-log entries,1763,"1,763 entries",pass,Matches hosted dashboard after linkage and exclusions
+V08,Raw-to-linked activity-log difference,64,Difference must be documented,warning,Entries belong to excluded device records or records without linked devices
+V09,Legacy five-minute dashboard rows,28203,Processed inventory,pass,Forty-seven participant streams in the dashboard object
+V10,Legacy duplicate participant-time keys,3 legacy; 0 after chronological repair,0 repaired legacy keys,pass,Sorting event states chronologically resolves the legacy contextual join; release event states remain separate
+V11,Negative light values,0,0 values,pass,No negative photometric values found
+V12,ActLumus melanopic EDI missingness,8 of 27003 rows,Missingness retained explicitly,pass,Eight missing rows remain missing
+V13,ActTrust semantic repair,1200 rows; 0 raw-to-legacy value mismatches,Photopic LIGHT retained; melanopic EDI missing,pass,The release rule losslessly restores all ActTrust values to photopic illuminance and leaves melanopic EDI unavailable
+V14,ActTrust photopic recovery,1200 legacy LIGHT values missing; 0 missing after semantic repair,0 missing photopic rows after repair,pass,Legacy MEDI-labelled values exactly reproduce re-aggregated raw ActTrust LIGHT
+V15,Malaysia timestamp-correction scope,"1 participant; 600 legacy five-minute rows; 3,000 one-minute release rows; -115,200 seconds",Retain recorded and corrected timestamps with correction provenance,pass,The project author confirmed the correction implemented in Analysis.qmd; the release does not assert the unverified UTC-clock rationale
+V16,Exclusion documentation,Implemented-only record has 1.12 target hours; narrative-only record has 50.00 hours,Evidence must support the implemented included set,pass,Logger coverage supports the implemented filter and identifies the prose reference as a documentation error
+V17,Participant-data sharing basis,No separate standalone consent; TUM authorises the transformed CC BY 4.0 release; the formal institutional waiver is documented in the Data Note,Release authority and formal waiver documented,pass,The TUM determination and author approval support the released pseudonymised dataset
+V18,Processed participant-key completeness,Id: 0 missing; record_id: 858 missing,Use the device serial internally only to create a shared opaque release ID,warning,"The public light, event, participant and travel tables share one opaque ID and omit the serial and source crosswalk"
+V19,One-minute release grid,141000 rows; 140954 observed; 46 explicit gaps; 43 ten-second and 4 sixty-second streams,"141,000 unique rows; gaps retained as missing",pass,One minute preserves the native 60-second streams and averages up to six observations from 10-second streams
+V20,Author-approved location and travel transformations,"38 one-decimal coordinate cells, of which 33 are singletons; 3 travel rows map to 2 opaque dated-flight groups; largest group links 2 participants",Country and one-decimal coordinates retained; city and raw flight numbers absent; exact-archive review completed,warning,The opaque flight ID preserves same-flight linkage without exposing the flight number. One-decimal coordinates and exact timestamps remain potentially identifying and must not be described as anonymous
+V21,Author-approved exact age and sex at birth,47 complete rows; ages 22-70; 30 distinct ages; 22 singleton exact-age participants; Female 30 and Male 17; 45 singleton country-coordinate-age-sex profiles,Retain exact age and controlled sex-at-birth category; describe the release as pseudonymised; exact-archive review completed,warning,"The author selected exact age and sex despite their linkage risk. Combined with country and one-decimal coordinates, the approved fields make 45 of 47 contributors unique."
+V22,Exact participant-archive review,"19 checks; 0 failures; 2 warnings; 22,200,827 bytes",No direct identifiers or forbidden source values; all approved schemas and transformations pass,pass,The released archive passed exact-file privacy and linkage-risk review with residual uniqueness and sequence risk documented

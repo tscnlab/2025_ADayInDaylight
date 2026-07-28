@@ -1,0 +1,114 @@
+title: "A Day in Daylight 2025: global wearable light exposure and contextual event logs around the September equinox"
+status: "curated public dataset, version 1.0.0"
+audit_date: "2026-07-28"
+source_commit:
+  repository: "https://github.com/tscnlab/2025_ADayInDaylight"
+  mirror_documented_in_citation_file: "https://github.com/tscnlab/2025_ADayInDaylight_Data"
+  commit: "b065ce2618910cfb5e45b4a5e6d89037114d4f06"
+  commit_date: "2025-11-10T12:16:43+01:00"
+hosted_dashboard: "https://tscnlab.github.io/2025_ADayInDaylight/"
+existing_archive:
+  concept_doi: "10.5281/zenodo.17464829"
+  resource_type: "Software"
+  role: "source-code provenance only; not the Data Note dataset deposit"
+dataset_deposit:
+  resource_type: "Dataset"
+  license: "CC-BY-4.0"
+  version: "1.0.0"
+  persistent_identifier: "Zenodo Dataset DOI recorded on the accompanying deposit record"
+verified_counts:
+  survey_rows: 1879
+  survey_record_ids: 52
+  logger_exports: 50
+  raw_logger_rows: 2086295
+  included_participants: 47
+  countries: 15
+  iana_time_zone_identifiers: 17
+  utc_offsets_on_2025_09_22: 10
+  raw_activity_logs: 1827
+  linked_activity_logs: 1763
+  excluded_or_unlinked_activity_logs: 64
+  legacy_processed_five_minute_rows: 28203
+  legacy_unique_five_minute_sensor_time_positions: 28200
+  curated_one_minute_grid_rows: 141000
+  curated_one_minute_rows_with_source_observations: 140954
+  curated_one_minute_explicit_gap_rows: 46
+  included_ten_second_source_streams: 43
+  included_sixty_second_source_streams: 4
+  legacy_duplicate_participant_time_keys: 3
+  curated_duplicate_participant_time_keys: 0
+  acttrust_rows_semantically_repaired: 1200
+  acttrust_raw_to_repaired_value_mismatches: 0
+  one_decimal_coordinate_cells: 38
+  singleton_one_decimal_coordinate_cells: 33
+  exact_age_minimum_years: 22
+  exact_age_maximum_years: 70
+  distinct_exact_ages: 30
+  singleton_exact_age_participants: 22
+  sex_at_birth_female: 30
+  sex_at_birth_male: 17
+  singleton_country_coordinate_age_sex_profiles: 45
+  participant_linked_travel_rows: 3
+  opaque_dated_flight_groups: 2
+  largest_linked_flight_group: 2
+software:
+  R: "4.5.0"
+  Quarto: "1.9.37"
+  LightLogR: "0.10.3"
+  tidyverse: "2.0.0"
+  dplyr: "1.2.1"
+  ggplot2: "4.0.3"
+  readr: "2.1.5"
+  scales: "1.4.0"
+  stringr: "1.6.0"
+  tidyr: "1.3.2"
+showcase_verification:
+  inputs:
+    - "participant_data/light_1min.csv"
+    - "participant_data/events.csv"
+    - "participant_data/participant_metadata.csv"
+    - "participant_data/travel_segments.csv"
+  commands:
+    - "cd data_note/data_release && quarto render data_showcase.qmd"
+    - "Rscript data_note/scripts/audit_release_candidate.R"
+    - "Rscript data_note/scripts/audit_data.R"
+    - "Rscript data_note/scripts/validate_release.R"
+  light_profile_display: "LightLogR symlog transform with base 10 and a 1-lx linear threshold; labelled ticks at 0, 1, 10, 100 and 1,000 lx"
+  verification_result: "45 ActLumus contributors; median profile range 0 to 299.7 lx; upper-quartile profile range 0 to 565.9633 lx; the 1,000-lx display limit does not censor the plotted summaries"
+semantic_rules:
+  - "ActTrust LIGHT is photopic illuminance and must not be treated as melanopic EDI."
+  - "The public light table uses floor-aligned one-minute means; source epoch and contributing-observation counts are retained, and explicit gaps remain missing rather than zero."
+  - "Event states must be ordered chronologically within participant before interval ends and durations are derived."
+  - "Recorded, legacy-dashboard and author-approved corrected timestamps must remain distinguishable for corrected streams."
+  - "The Malaysian correction implemented in Analysis.qmd is author-approved at -115200 seconds; retain recorded and corrected timestamps and do not assert the unverified UTC-clock rationale as device metadata."
+  - "record_id is incomplete after event-state linkage and must not be the release participant key."
+  - "The device serial is used internally for source linkage only; one HMAC-derived opaque participant_id links every public table."
+  - "Travel clock times are interpreted in their reported start/end IANA zones and converted to UTC at one-minute precision; the unexplained legacy one-hour end-time subtraction is not applied."
+privacy_rules:
+  - "Do not include raw logger headers or raw REDCap exports."
+  - "Remove free text, direct identifiers, device serials and device/app payloads."
+  - "Retain cleaned country and coordinates rounded to one decimal place; remove city and exact coordinates."
+  - "Retain exact age and sex assigned at birth under the author decision; 45 of 47 country-coordinate-age-sex profiles are unique."
+  - "Remove raw flight numbers and replace them with a domain-separated HMAC identifier keyed to normalised flight number plus local departure date; never publish the key input or mapping."
+  - "Exact age, sex at birth, one-decimal coordinates, exact timestamps and event sequences remain pseudonymous; their residual linkage risk was accepted through exact-archive review."
+  - "Use a new opaque participant identifier with the crosswalk held outside the deposit."
+release_builder:
+  workflow: "The R release builder produced the four participant-linked public tables and the aggregate audit records."
+  participant_output: "four participant-linked public tables built after CC BY 4.0 authority, exact-file review and confidential HMAC linkage; the released files passed 19 exact checks with zero failures and two accepted residual-risk warnings"
+  public_epoch: "one-minute floor-aligned means on a complete 50-hour UTC grid"
+  private_linkage: "device serial used only to locate source files and derive the shared opaque participant ID; source flight number used only to derive the opaque dated-flight ID; serial, source numbers and crosswalks are not written"
+instrument:
+  source: "survey/ADayInDaylight.pdf"
+  source_status: "blank REDCap instrument export marked Confidential; excluded from the public release"
+  public_derivatives:
+    - "instrument/structured_questionnaire.md"
+    - "instrument/instrument_codebook.csv"
+    - "instrument/protocol_and_participant_instructions_summary.md"
+  privacy_rule: "The public instrument documents retained coded questions and approved transformed fields without direct identifiers, free text or app/device payloads. Exact age, sex at birth, one-decimal coordinates and opaque dated-flight IDs were retained following exact-archive privacy review."
+internal_protocol_materials:
+  status: "excluded from version control because they contain contributor names and contact details"
+  preregistration: "No OSF registration occurred; preregistration wording in the planning materials describes an uncompleted intention."
+  responsible_institution: "Technical University of Munich"
+  ethics_route: "TUM accepts the implicit researcher-event agreement for the transformed CC BY 4.0 release; the formal institutional waiver is reported in the journal submission record"
+  standalone_consent: "not collected"
+  withdrawal: "contributors could withdraw at any time without repercussions; no formal procedure or deadline was specified"

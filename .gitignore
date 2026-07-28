@@ -1,5 +1,6 @@
-raw_unorganized/
-*DS_Store
-.Rproj.user
+.DS_Store
+.quarto/
+*_files/
+*.utf8.md
+*.knit.md
 
-/.quarto/

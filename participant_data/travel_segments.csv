@@ -1,0 +1,4 @@
+participant_id,flight_id,travel_start_local,travel_start_utc,travel_end_local,travel_end_utc,tz_identifier_start,tz_identifier_end,travel_duration_seconds
+ADID-959E0A543C6F,FLT-560EA6CBF788,2025-09-22T06:03:00+01:00,2025-09-22T05:03:00Z,2025-09-22T09:04:00+02:00,2025-09-22T07:04:00Z,Europe/Dublin,Europe/Madrid,7260
+ADID-AFD2A442CAEB,FLT-24B1FD1480DB,2025-09-22T13:06:00+02:00,2025-09-22T11:06:00Z,2025-09-22T15:13:00+03:00,2025-09-22T12:13:00Z,Europe/Stockholm,Europe/Helsinki,4020
+ADID-08BEC12EE867,FLT-560EA6CBF788,2025-09-22T06:03:00+01:00,2025-09-22T05:03:00Z,2025-09-22T09:04:00+02:00,2025-09-22T07:04:00Z,Europe/Dublin,Europe/Madrid,7260

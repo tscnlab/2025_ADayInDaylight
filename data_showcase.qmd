@@ -1,0 +1,519 @@
+---
+title: "A Day in Daylight 2025: data showcase"
+subtitle: "Four linked tables and reproducible descriptive examples"
+author:
+  - name: "Johannes Zauner"
+  - name: "Resshaya Roobini Murukesu"
+  - name: "Manuel Spitschan"
+date: 2026-07-28
+date-format: "D MMMM YYYY"
+lang: en-GB
+engine: knitr
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    theme: default
+    code-fold: true
+    code-summary: "Show R code"
+    code-tools: true
+    code-overflow: wrap
+    embed-resources: true
+    smooth-scroll: true
+    link-external-newwindow: true
+    fig-format: svg
+execute:
+  echo: true
+  warning: false
+  message: false
+  error: false
+---
+
+*A Day in Daylight 2025* paired wearable light measurements with structured descriptions of what contributors were doing and where they encountered light around the September 2025 equinox. The [interactive dashboard](https://tscnlab.github.io/2025_ADayInDaylight/Dashboard.html) presents the original public exploration, and the [rendered R/Quarto analysis](https://tscnlab.github.io/2025_ADayInDaylight/Analysis.html) exposes its processing and visualisation workflow.
+
+This short document introduces the four transformed release tables, demonstrates their linkage, and gives two descriptive examples. It does not reproduce the legacy dashboard analysis and does not make inferential, causal, clinical or population-representative claims. The release is pseudonymised rather than anonymous; users should not attempt to identify contributors.
+
+## Read and validate the tables
+
+The analysis uses R as the authoritative runtime. It reads the final release tables directly and fails if a required file, column, key or headline count differs from the documented data contract.
+
+```{r}
+#| label: setup
+#| include: false
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(ggplot2)
+  library(knitr)
+  library(readr)
+  library(scales)
+  library(stringr)
+  library(tidyr)
+})
+
+options(dplyr.summarise.inform = FALSE, knitr.kable.NA = "")
+
+data_dir <- "participant_data"
+data_files <- c(
+  light = file.path(data_dir, "light_1min.csv"),
+  events = file.path(data_dir, "events.csv"),
+  participants = file.path(data_dir, "participant_metadata.csv"),
+  travel = file.path(data_dir, "travel_segments.csv")
+)
+
+missing_files <- data_files[!file.exists(data_files)]
+if (length(missing_files) > 0L) {
+  stop("Missing release table(s): ", paste(missing_files, collapse = ", "))
+}
+
+finite_median <- function(x) {
+  x <- x[is.finite(x)]
+  if (length(x) == 0L) NA_real_ else median(x)
+}
+
+finite_quantile <- function(x, probability) {
+  x <- x[is.finite(x)]
+  if (length(x) == 0L) {
+    NA_real_
+  } else {
+    unname(quantile(x, probs = probability, type = 7))
+  }
+}
+
+theme_showcase <- function(base_size = 11) {
+  theme_minimal(base_size = base_size, base_family = "Arial") +
+    theme(
+      panel.grid.minor = element_blank(),
+      plot.title = element_text(face = "bold", colour = "#17324D"),
+      plot.subtitle = element_text(colour = "#536474"),
+      plot.caption = element_text(colour = "#536474", hjust = 0),
+      strip.text = element_text(face = "bold", colour = "#17324D"),
+      legend.position = "none"
+    )
+}
+```
+
+```{r}
+#| label: read-release
+#| code-summary: "Show explicit import specifications"
+
+light <- read_csv(
+  data_files[["light"]],
+  col_types = cols(
+    participant_id = col_character(),
+    timestamp_recorded_local = col_character(),
+    timestamp_corrected_local = col_character(),
+    timestamp_utc = col_datetime(format = "%Y-%m-%dT%H:%M:%SZ"),
+    timestamp_corrected_flag = col_logical(),
+    timestamp_correction_seconds = col_double(),
+    timestamp_correction_reason = col_character(),
+    device_family = col_character(),
+    aggregation_interval_seconds = col_double(),
+    source_dominant_epoch_seconds = col_double(),
+    source_observations = col_double(),
+    photopic_illuminance_lux = col_double(),
+    melanopic_edi_lux = col_double(),
+    explicit_gap_flag = col_logical(),
+    duplicate_key_flag = col_logical()
+  ),
+  na = ""
+)
+
+events <- read_csv(
+  data_files[["events"]],
+  col_types = cols(
+    .default = col_character(),
+    event_start_utc = col_datetime(format = "%Y-%m-%dT%H:%M:%SZ"),
+    event_end_utc = col_datetime(format = "%Y-%m-%dT%H:%M:%SZ"),
+    event_duration_seconds = col_double(),
+    screen_phone = col_logical(),
+    screen_tablet = col_logical(),
+    screen_computer = col_logical(),
+    screen_television = col_logical()
+  ),
+  na = ""
+)
+
+participants <- read_csv(
+  data_files[["participants"]],
+  col_types = cols(
+    participant_id = col_character(),
+    device_family = col_character(),
+    country = col_character(),
+    latitude_round1 = col_double(),
+    longitude_round1 = col_double(),
+    age_years = col_double(),
+    sex_at_birth = col_character(),
+    light_rows = col_double(),
+    source_dominant_epoch_seconds = col_double(),
+    explicit_gap_rows = col_double(),
+    photopic_nonmissing_rows = col_double(),
+    melanopic_edi_nonmissing_rows = col_double(),
+    event_rows = col_double(),
+    travel_rows = col_double()
+  ),
+  na = ""
+)
+
+travel <- read_csv(
+  data_files[["travel"]],
+  col_types = cols(
+    participant_id = col_character(),
+    flight_id = col_character(),
+    travel_start_local = col_character(),
+    travel_start_utc = col_datetime(format = "%Y-%m-%dT%H:%M:%SZ"),
+    travel_end_local = col_character(),
+    travel_end_utc = col_datetime(format = "%Y-%m-%dT%H:%M:%SZ"),
+    tz_identifier_start = col_character(),
+    tz_identifier_end = col_character(),
+    travel_duration_seconds = col_double()
+  ),
+  na = ""
+)
+
+stopifnot(
+  nrow(light) == 141000L,
+  nrow(events) == 1763L,
+  nrow(participants) == 47L,
+  nrow(travel) == 3L,
+  n_distinct(light$participant_id) == 47L,
+  !anyDuplicated(light[c("participant_id", "timestamp_utc")]),
+  !any(light$duplicate_key_flag),
+  sum(light$explicit_gap_flag) == 46L,
+  all(events$event_duration_seconds >= 0, na.rm = TRUE),
+  setequal(unique(light$participant_id), participants$participant_id),
+  all(unique(events$participant_id) %in% participants$participant_id),
+  all(unique(travel$participant_id) %in% participants$participant_id)
+)
+```
+
+The four files use different analysis units. Treating every row as an independent observation would therefore be incorrect.
+
+```{r}
+#| label: tbl-file-inventory
+#| tbl-cap: "Release files, analysis units and linkage keys."
+
+file_inventory <- tibble(
+  File = basename(unname(data_files)),
+  Rows = c(nrow(light), nrow(events), nrow(participants), nrow(travel)),
+  `Analysis unit` = c(
+    "Participant-minute",
+    "Participant-event interval",
+    "Participant",
+    "Participant-travel interval"
+  ),
+  `Primary or linkage key` = c(
+    "participant_id + timestamp_utc",
+    "participant_id + event_start_utc",
+    "participant_id",
+    "participant_id + travel_start_utc"
+  )
+)
+
+kable(file_inventory, format.args = list(big.mark = ","))
+```
+
+`participant_id` is the only person-level linkage key required for reuse. Source record identifiers, device serials and the confidential crosswalk are not part of the release.
+
+## Combine participant summaries and events
+
+Participant-level summaries use an ordinary equality join. The code below independently counts event rows and checks them against the counts supplied in `participant_metadata.csv`.
+
+```{r}
+#| label: tbl-participant-join
+#| tbl-cap: "Checks for the participant-level equality join."
+
+event_counts <- events |>
+  count(participant_id, name = "event_rows_from_events")
+
+participant_overview <- participants |>
+  left_join(event_counts, by = "participant_id", relationship = "one-to-one") |>
+  mutate(event_rows_from_events = coalesce(event_rows_from_events, 0L))
+
+participant_join_checks <- tibble(
+  Check = c(
+    "Participant rows after join",
+    "Duplicated participant identifiers",
+    "Metadata/event count disagreements"
+  ),
+  Observed = c(
+    nrow(participant_overview),
+    sum(duplicated(participant_overview$participant_id)),
+    sum(participant_overview$event_rows != participant_overview$event_rows_from_events)
+  ),
+  Expected = c(47L, 0L, 0L)
+)
+
+kable(participant_join_checks)
+```
+
+The travel table joins in the same way, although it is one-to-many because a participant may have more than one travel interval.
+
+```{r}
+#| label: tbl-travel-join
+#| tbl-cap: "Travel intervals after joining the participant table."
+
+travel_with_metadata <- travel |>
+  left_join(
+    participants |>
+      select(participant_id, country, device_family),
+    by = "participant_id",
+    relationship = "many-to-one"
+  ) |>
+  transmute(
+    participant_id,
+    flight_id,
+    country,
+    device_family,
+    travel_duration_minutes = round(travel_duration_seconds / 60)
+  )
+
+kable(travel_with_metadata)
+```
+
+## Attach contextual intervals to light minutes
+
+Event states are intervals, not timestamped measurements. A light minute belongs to an event when its UTC timestamp is greater than or equal to the event start and strictly before the event end. The half-open interval prevents an observation at a transition from matching both adjacent events.
+
+```{r}
+#| label: tbl-interval-join
+#| tbl-cap: "Cardinality and coverage checks for the interval join."
+
+light_with_context <- light |>
+  left_join(
+    events,
+    by = join_by(
+      participant_id,
+      timestamp_utc >= event_start_utc,
+      timestamp_utc < event_end_utc
+    ),
+    relationship = "many-to-one"
+  )
+
+interval_join_checks <- tibble(
+  Check = c(
+    "Input light minutes",
+    "Rows after interval join",
+    "Duplicated participant-minute keys",
+    "Minutes inside a contextual interval",
+    "Minutes outside all contextual intervals",
+    "Explicit sensor-gap minutes"
+  ),
+  Observed = c(
+    nrow(light),
+    nrow(light_with_context),
+    sum(duplicated(light_with_context[c("participant_id", "timestamp_utc")])),
+    sum(!is.na(light_with_context$event_start_utc)),
+    sum(is.na(light_with_context$event_start_utc)),
+    sum(light_with_context$explicit_gap_flag)
+  )
+)
+
+kable(interval_join_checks, format.args = list(big.mark = ","))
+```
+
+Minutes outside a contextual interval are not automatically non-wear or missing light. Likewise, an explicit sensor gap is not darkness. These states remain separate in the joined data.
+
+## Descriptive example: participant-local light profiles
+
+This example describes the logger signal by participant-local clock time. It uses only the 45 ActLumus streams so that photopic illuminance and melanopic EDI remain measurements from the same device family. It includes all logger states and must therefore be interpreted as an **all-state logger profile**, not a wear-only personal-exposure estimate.
+
+Each participant first contributes one median per 30-minute local-clock bin. The plotted line is the median of those participant-specific medians; the ribbon is their interquartile range. Missing measurements are omitted from their quantity-specific summary and are never replaced with zero. The symmetric-logarithmic (symlog) display is linear from 0 to 1 lx and logarithmic above 1 lx, with labelled ticks at 0, 1, 10, 100 and 1,000 lx.
+
+```{r}
+#| label: fig-local-profiles
+#| fig-cap: "Participant-balanced local-clock profiles for the 45 ActLumus streams. Lines show the median of participant-specific 30-minute medians and ribbons show the interquartile range. The vertical axis uses a zero-preserving symlog scale with labelled values from 0 to 1,000 lx. All logger states are included."
+#| fig-alt: "Two stacked line charts over 24 local clock hours. The upper chart shows photopic illuminance and the lower chart melanopic equivalent daylight illuminance for ActLumus participants. Each has a dark blue median line and a pale interquartile ribbon. The symlog vertical axes are labelled at 0, 1, 10, 100 and 1,000 lux, and both quantities are generally higher during daytime hours."
+#| fig-width: 9
+#| fig-height: 6.4
+
+local_clock_minutes <- function(x) {
+  valid <- str_detect(x, "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}$")
+  if (!all(valid)) {
+    stop("Unexpected corrected-local timestamp format.")
+  }
+  as.integer(str_sub(x, 12, 13)) * 60L +
+    as.integer(str_sub(x, 15, 16))
+}
+
+participant_profiles <- light |>
+  filter(device_family == "ActLumus", !explicit_gap_flag) |>
+  mutate(
+    local_minute = local_clock_minutes(timestamp_corrected_local),
+    clock_bin_minutes = floor(local_minute / 30) * 30
+  ) |>
+  group_by(participant_id, clock_bin_minutes) |>
+  summarise(
+    photopic_illuminance_lux = finite_median(photopic_illuminance_lux),
+    melanopic_edi_lux = finite_median(melanopic_edi_lux),
+    .groups = "drop"
+  ) |>
+  pivot_longer(
+    cols = c(photopic_illuminance_lux, melanopic_edi_lux),
+    names_to = "quantity",
+    values_to = "value_lux"
+  )
+
+profile_summary <- participant_profiles |>
+  group_by(clock_bin_minutes, quantity) |>
+  summarise(
+    median_lux = finite_median(value_lux),
+    q25_lux = finite_quantile(value_lux, 0.25),
+    q75_lux = finite_quantile(value_lux, 0.75),
+    contributors = sum(is.finite(value_lux)),
+    .groups = "drop"
+  ) |>
+  mutate(
+    quantity = factor(
+      recode(
+        quantity,
+        photopic_illuminance_lux = "Photopic illuminance",
+        melanopic_edi_lux = "Melanopic EDI"
+      ),
+      levels = c("Photopic illuminance", "Melanopic EDI")
+    ),
+    local_hour = clock_bin_minutes / 60
+  )
+
+ggplot(profile_summary, aes(x = local_hour, y = median_lux)) +
+  geom_ribbon(
+    aes(ymin = q25_lux, ymax = q75_lux),
+    fill = "#4AA3A2",
+    alpha = 0.22
+  ) +
+  geom_line(colour = "#185A7D", linewidth = 0.9) +
+  facet_wrap(vars(quantity), ncol = 1) +
+  scale_x_continuous(
+    breaks = seq(0, 24, by = 4),
+    labels = sprintf("%02d:00", seq(0, 24, by = 4)),
+    limits = c(0, 24)
+  ) +
+  scale_y_continuous(
+    transform = LightLogR::symlog_trans(base = 10, thr = 1, scale = 1),
+    breaks = c(0, 1, 10, 100, 1000),
+    limits = c(0, 1000),
+    labels = label_number(big.mark = ","),
+    minor_breaks = NULL
+  ) +
+  labs(
+    x = "Corrected participant-local clock time",
+    y = "Light level (lx; symlog scale)"
+  ) +
+  theme_showcase()
+```
+
+The broad daytime elevation is a descriptive feature of these included logger records. The ribbon reflects between-participant variation, unequal contextual coverage and heterogeneous behaviour; it is not a confidence interval.
+
+## Descriptive example: logged setting duration
+
+The second example uses the event table without joining it to the light measurements. Durations are first converted to proportions within each participant. The participant-by-setting grid is completed with explicit zeros before the median and interquartile range are calculated, so participants who never reported a category remain in its denominator.
+
+```{r}
+#| label: fig-setting-duration
+#| fig-cap: "Participant-balanced shares of logged contextual duration by broad setting. Points are medians and horizontal lines are interquartile ranges across 47 contributors. These are shares of event-covered time, not shares of the complete 50-hour measurement window."
+#| fig-alt: "Horizontal point-range chart for Indoors, Outdoors, Mixed and Unspecified settings. Indoors has the largest median share of logged event duration, while the other categories have lower medians and varying interquartile ranges."
+#| fig-width: 8.5
+#| fig-height: 4.5
+
+setting_levels <- c("Indoors", "Outdoors", "Mixed", "Unspecified")
+
+setting_durations <- events |>
+  mutate(setting = coalesce(setting, "Unspecified")) |>
+  group_by(participant_id, setting) |>
+  summarise(
+    duration_seconds = sum(event_duration_seconds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+participant_setting <- expand_grid(
+  participant_id = participants$participant_id,
+  setting = setting_levels
+) |>
+  left_join(
+    setting_durations,
+    by = c("participant_id", "setting"),
+    relationship = "one-to-one"
+  ) |>
+  mutate(duration_seconds = coalesce(duration_seconds, 0)) |>
+  group_by(participant_id) |>
+  mutate(
+    total_event_seconds = sum(duration_seconds),
+    duration_share = if_else(
+      total_event_seconds > 0,
+      duration_seconds / total_event_seconds,
+      NA_real_
+    )
+  ) |>
+  ungroup()
+
+setting_summary <- participant_setting |>
+  group_by(setting) |>
+  summarise(
+    median_share = finite_median(duration_share),
+    q25_share = finite_quantile(duration_share, 0.25),
+    q75_share = finite_quantile(duration_share, 0.75),
+    .groups = "drop"
+  ) |>
+  mutate(setting = factor(setting, levels = rev(setting_levels)))
+
+ggplot(setting_summary, aes(y = setting, x = median_share)) +
+  geom_segment(
+    aes(x = q25_share, xend = q75_share, yend = setting),
+    colour = "#8AA5B5",
+    linewidth = 2.2,
+    lineend = "round"
+  ) +
+  geom_point(colour = "#185A7D", size = 3.2) +
+  scale_x_continuous(
+    labels = label_percent(accuracy = 1),
+    limits = c(0, 1),
+    expand = expansion(mult = c(0, 0.02))
+  ) +
+  labs(
+    x = "Share of each participant's logged event duration",
+    y = NULL
+  ) +
+  theme_showcase()
+```
+
+The result describes the contextual intervals available in this release. It should not be interpreted as a representative estimate of time use: contributors logged transitions at different frequencies, terminal-state handling affects durations, and the event was a purposive awareness activity.
+
+## Reproducibility
+
+The showcase analyses the final, already harmonised release tables with standard tidyverse operations. It does not re-import raw device files, rename optical channels, impute missing light, calculate threshold compliance or fit statistical models. The release-building workflow separately records the LightLogR version used for import and validation.
+
+```{r}
+#| label: tbl-software
+#| tbl-cap: "Software versions used to render this showcase."
+
+software_versions <- tibble(
+  Component = c(
+    "R",
+    "Quarto",
+    "LightLogR",
+    "dplyr",
+    "ggplot2",
+    "readr",
+    "tidyr"
+  ),
+  Version = c(
+    paste(R.version$major, R.version$minor, sep = "."),
+    "1.9.37",
+    as.character(packageVersion("LightLogR")),
+    as.character(packageVersion("dplyr")),
+    as.character(packageVersion("ggplot2")),
+    as.character(packageVersion("readr")),
+    as.character(packageVersion("tidyr"))
+  )
+)
+
+kable(software_versions)
+```
+
+Render from this directory with:
+
+```sh
+quarto render data_showcase.qmd
+```
+
+The input tables, this source document and the rendered self-contained HTML are included in the release checksums.

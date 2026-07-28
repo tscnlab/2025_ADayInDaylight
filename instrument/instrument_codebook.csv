@@ -1,0 +1,25 @@
+instrument,section,source_question_or_field,release_variable,response_structure,release_status,public_release_rule
+Intake questionnaire,Demographics,Age in years,age_years,integer,included_exact_author_decision,Retain exact completed years; exact-archive review documents 22 singleton exact-age participants and the combined-profile uniqueness
+Intake questionnaire,Demographics,Sex assigned at birth,sex_at_birth,"Female; Male",included_exact_author_decision,Retain the controlled category; exact-archive review completed with residual risk documented
+Intake questionnaire,Contact,Email address,,free text,excluded,Direct identifier
+Activity log,Logger state,Are you wearing the light logger at the moment?,wear_state,"Wear; Non-wear; Bedtime",included,Retain normalised structured category
+Activity log,Social context,Are you alone or with others?,social_context,"Alone; With others",included,Retain structured category
+Activity log,Activity,Wear activity,wear_activity,"Sedentary; Light activity; Moderate activity; High-intensity activity",included,Retain only for wear states
+Activity log,Logger state,Non-wear activity or storage,nonwear_storage,"Stationary dark place; Mobile dark place; Surface with varying light exposure; Other",included,Retain code only and exclude any explanatory text
+Activity log,Logger state,Logger position during sleep,nighttime_position,"Facing upward on bedside table; Facing downward on bedside table; Other",included,Retain code only and exclude any explanatory text
+Activity log,Setting,Select the setting,setting,"Indoors; Outdoors; Mixed; Bed; Non-wear",included,Normalise structured category and derive branch states where required
+Activity log,Setting,Broad indoor or outdoor setting,setting_location,"Home; Working space; Learning facility; Retail food or services facility; Health facility; Leisure space; Other",included,Retain structured category
+Activity log,Setting,Specific indoor outdoor or transport setting,setting_specific,controlled category,included_reviewed,Retain the approved codes and exclude every Other narrative
+Activity log,Lighting,Select lighting setting daylight,daylight_condition,"Direct sunlight; Shade or cloudy; Near a window; Away from window",included,Retain normalised structured category
+Activity log,Lighting,Select lighting setting electric light,electric_light_condition,"Lights on; Dim light; Lights off",included,Retain normalised structured category
+Activity log,Screens,Select lighting setting screen use,"screen_phone; screen_tablet; screen_computer; screen_television","Smartphone; Tablet; Computer; Television; multi-select",included,Release one Boolean variable per option
+Activity log,Lighting autonomy,Were the lighting conditions self-selected?,lighting_autonomy,"Yes; Partly; No; Not applicable",included,Retain normalised structured category
+Activity log,Narrative,Open-ended comments,,free text,excluded,Remove entirely
+Activity log,App metadata,"Install dates participant code UUID schedule status supplemental JSON and serialised result",,mixed,excluded,Remove direct identifiers timestamps and device or app payloads
+Post-participation survey,Completeness,Confidence in complete logging,,ordinal 1 to 5,excluded_from_participant_release,Used only for internal validation and absent from the public participant schema
+Post-participation survey,Behaviour change,Did participation change usual behaviour?,,single choice and free text,excluded,Exclude both the response and narrative from the participant release
+Post-participation survey,Narrative,"Logging difficulty behaviour-change and other feedback",,free text,excluded,Remove entirely
+Post-participation survey,Travel,"Time-zone travel departure arrival and approximate dates or times","travel_start_local; travel_start_utc; travel_end_local; travel_end_utc",mixed,included_transformed,Retain minute-resolution start and end times with explicit source zones and UTC conversions in travel_segments.csv; exact-archive privacy review completed with residual risk documented
+Post-participation survey,Location,"City country latitude and longitude","country; latitude_round1; longitude_round1",mixed,included_transformed,Retain cleaned country and coordinates rounded to one decimal place; exclude city and exact coordinates
+Device information,Device,Device ID,,identifier,excluded,Use internally to link source files and derive the shared opaque participant ID; never publish the serial or crosswalk
+Detailed time-zone changes,Travel,"Start and end time-zone identifiers times and flight number","tz_identifier_start; tz_identifier_end; flight_id",mixed,included_transformed,Retain time-zone identifiers; replace raw flight number with a domain-separated opaque dated-flight ID and never publish the number or mapping
