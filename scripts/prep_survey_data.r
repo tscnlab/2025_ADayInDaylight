@@ -2,7 +2,7 @@
 rm(list=ls())
 # graphics.off()
 #Load Hmisc library
-# library(Hmisc)
+library(Hmisc)
 #Read Data
 data=read.csv('data/survey/survey_data.csv')
 #Setting Labels

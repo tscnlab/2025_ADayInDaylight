@@ -162,8 +162,7 @@ The manual entries for locations had to be cleaned. This was done with OpenAI th
 places <- read_csv("data/cleaned/places.csv")
 places <- 
   places |> 
-  dplyr::mutate(record_id = as.character(record_id)) |> 
-  select(-`...1`)
+  dplyr::mutate(record_id = as.character(record_id))
 
 #merge data with main data
 data_devices_cleaned <- 
@@ -547,7 +546,7 @@ light_data |>
 
 light_data |> 
   aggregate_Datetime("1hour") |> 
-  gg_days(Datetime_UTC,
+  gg_days(x.axis = Datetime_UTC,
           geom = "ribbon",
           facetting = FALSE,
           fill = "skyblue3",
@@ -565,7 +564,7 @@ light_data |>
 #| warning: false
 light_data |> 
   aggregate_Datetime("1hour") |> 
-  gg_days(Datetime_UTC,
+  gg_days(x.axis = Datetime_UTC,
           facetting = FALSE, 
           group = Id, 
           lwd = 0.25,
@@ -588,7 +587,7 @@ light_data |>
                            "Datetime" ~ "UTC Time",
                            "Datetime_UTC" ~ "Local Time")) |> 
   dplyr::mutate(name = factor(name)) |> 
-    gg_days(value,
+    gg_days(x.axis = value,
             geom = "ribbon",
             fill = "skyblue3",
             alpha = 0.4,
@@ -820,7 +819,7 @@ events_complete <-
 events_complete |> 
   dplyr::mutate(
     Datetime = as.POSIXct(startdate, tz = "UTC"),
-    UTC_dt = force_tzs(Datetime, tz_identifier),
+    # UTC_dt = force_tzs(Datetime, tz_identifier),
     .before = 1) |> 
   select(-startdate)
 
@@ -868,6 +867,9 @@ label(events_complete$setting_mixed) = "Outdoor-Indoor mixed settings"
 label(events_complete$wear_activity) = "Activity"
 label(events_complete$nonwear_activity) = "Non-wear wearable position"
 label(events_complete$nighttime) = "Nightstand wearable measurement direction"
+label(events_complete$autonomy) <- "Were the lighting conditions in this setting self-selected?"
+label(events_complete$setting_indoors_workingspace) <- "Indoors setting (work)"
+label(events_complete$setting_indoors_leisurespace) <- "Indoors setting (leisure)"
 ```
 
 ```{r}
@@ -944,6 +946,61 @@ event_tbl_other
 gtsave(event_tbl_other |> as_gt(), "tables/table4.png")
 
 ```
+
+```{r}
+#this is a high level summary for generating a length-weighted list of options people chose.
+high_level_list <- 
+events_complete |> 
+  pivot_longer(
+  -c(Datetime:record_id, notes:city),
+  values_transform = as.character)
+
+duration_complete <- 
+  events_complete |>
+  summarize(duration = sum(status.duration, na.rm = TRUE)) |> 
+  pull(duration)
+
+duration_complete_formatted <- 
+  duration_complete |> vec_fmt_duration(input_units = "secs", output_units = "hours")
+
+names_events <- 
+events_complete |> 
+  select(-c(Datetime:record_id, notes:city)) |> 
+  map(\(x) attr(x, "label")) |> list_simplify()
+
+# high_level_list <- 
+high_level_list |> 
+  mutate(name = names_events[name]) |> 
+  count(name, value, 
+        sort = TRUE, wt = status.duration) |> 
+  drop_na(value) |>
+  group_by(name) |> 
+  gt() |> 
+  fmt_duration(n, input_units = "secs", output_units = "hours") |> 
+  cols_add(relative.duration = 
+             (n |> as.numeric()) / (duration_complete |> as.numeric())
+           ) |> 
+  tab_style_body(targets = "row",
+                 columns = relative.duration,
+                 fn  = \(x) x < 0.05,
+                 style = cell_text(color = "blue")) |> 
+  tab_style_body(targets = "row",
+                 columns = relative.duration,
+                 fn  = \(x) x < 0.01,
+                 style = cell_text(color = "red")) |> 
+  fmt_percent(relative.duration, decimals = 1) |> 
+  cols_label(value = "Participant activities and contexts",
+             n = "Represented duration",
+             relative.duration = "Relative duration") |> 
+  tab_footnote(
+    glue(
+      "Based on a total represented duration of {duration_complete_formatted}."
+      ),locations = cells_column_labels(relative.duration)
+    ) |> 
+  tab_header(md("**A DAY IN DAYLIGHT** event: participant activities and contexts, weighted by their absolute and relative duration in the collected data"), subtitle = md("Activities and contexts with <span style='color: blue;'>less than five percent</span> of represented time are colored <span style='color: blue;'>blue</span>, and with <span style='color: red;'>less than one percent</span> of represented time are colored <span style='color: red;'>red</span>")) |> 
+  gtsave("tables/ADayInDaylight_inventory.docx")
+```
+
 
 ```{r}
 #| label: difficulties logging
@@ -1040,12 +1097,12 @@ events_complete |>
                 .after = Datetime
                 ) |> 
   rename(start = Datetime) |> 
-  select(-c(age:file_path, status.duration, UTC_dt))
+  select(-c(age:file_path, status.duration))
 
 #adding event-specific information
 light_data_ext <- 
 light_data |> 
-  select(Id, Datetime, Datetime_UTC, MEDI) |> 
+  select(Id, Datetime, Datetime_UTC, MEDI, LIGHT) |> 
   add_states(events_light, Datetime.colname = Datetime_UTC) |> 
   rename(DatetimeUTC = Datetime) |>
   rename(Datetime = Datetime_UTC) |> 

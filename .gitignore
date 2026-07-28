@@ -3,3 +3,12 @@ raw_unorganized/
 .Rproj.user
 
 /.quarto/
+.positai
+
+**/*.quarto_ipynb
+
+# Sensitive protocol and participant materials (contains contributor names)
+/data_note/protocol_instructions/
+
+# Confidential release linkage material (never publish or hand over routinely)
+/data_note/private/
