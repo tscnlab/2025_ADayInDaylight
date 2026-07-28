@@ -61,27 +61,13 @@ have a 60-second epoch. The public grid uses floor-aligned one-minute means.
 Rows with no contributing observation are retained as explicit gaps with
 missing light values and are never replaced with zero.
 
-One Malaysian stream has an author-approved correction of −115,200 seconds.
-The release retains both the recorded and corrected timestamps and identifies
-the correction explicitly.
-
 ## Privacy and responsible reuse
 
-The files are pseudonymised, not anonymous. Direct identifiers, source record
+The files are pseudonymised. Direct identifiers, source record
 identifiers, device serials, city, exact coordinates, raw flight numbers, free
 text and mobile-device payloads are excluded. Exact age, sex assigned at birth,
-one-decimal coordinates, exact timestamps and contextual sequences remain
-potentially identifying in combination. Do not attempt to identify
+one-decimal coordinates, exact timestamps and contextual sequences are retained. Do not attempt to identify
 contributors or combine these data with external information for that purpose.
-
-No separate standalone consent was collected. Participation in the
-researcher-oriented event was understood as agreement to its open and
-reproducible sharing purpose, and TUM determined that publication of the
-transformed dataset under CC BY 4.0 is permissible. Contributors could
-withdraw their data at any time without repercussions.
-
-The focused validation and privacy reports document 19 exact-file checks with
-zero failures and two accepted residual-risk warnings.
 
 ## Related resources
 
