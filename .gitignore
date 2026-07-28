@@ -4,3 +4,7 @@
 *.utf8.md
 *.knit.md
 
+# Working material retained only on the source branch
+/.Rproj.user/
+/data_note/
+/docs/
