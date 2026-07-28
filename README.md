@@ -12,7 +12,8 @@ participant-summary rows and three travel intervals. The same opaque
 `participant_id` links the four tables.
 
 The files are licensed under Creative Commons Attribution 4.0 International
-(CC BY 4.0). Please cite the Zenodo Dataset DOI displayed on the deposit record.
+(CC BY 4.0). Cite this version using the deposited Zenodo Dataset DOI
+[10.5281/zenodo.21654277](https://doi.org/10.5281/zenodo.21654277).
 
 ## Data files
 
@@ -71,10 +72,14 @@ contributors or combine these data with external information for that purpose.
 
 ## Related resources
 
+- Dataset DOI: <https://doi.org/10.5281/zenodo.21654277>
+- GitHub `data_note` branch:
+  <https://github.com/tscnlab/2025_ADayInDaylight_Data/tree/data_note>
 - Project website: <https://tscnlab.github.io/2025_ADayInDaylight/>
 - Interactive dashboard:
   <https://tscnlab.github.io/2025_ADayInDaylight/Dashboard.html>
 - Underlying R/Quarto analysis:
   <https://tscnlab.github.io/2025_ADayInDaylight/Analysis.html>
-- Source repository: <https://github.com/tscnlab/2025_ADayInDaylight>
+- Original source and analysis repository:
+  <https://github.com/tscnlab/2025_ADayInDaylight>
 - Software archive: <https://doi.org/10.5281/zenodo.17464829>

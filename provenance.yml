@@ -1,9 +1,9 @@
 title: "A Day in Daylight 2025: global wearable light exposure and contextual event logs around the September equinox"
-status: "curated public dataset, version 1.0.0"
+status: "deposited public dataset, version 1.0.0"
 audit_date: "2026-07-28"
 source_commit:
   repository: "https://github.com/tscnlab/2025_ADayInDaylight"
-  mirror_documented_in_citation_file: "https://github.com/tscnlab/2025_ADayInDaylight_Data"
+  dataset_branch: "https://github.com/tscnlab/2025_ADayInDaylight_Data/tree/data_note"
   commit: "b065ce2618910cfb5e45b4a5e6d89037114d4f06"
   commit_date: "2025-11-10T12:16:43+01:00"
 hosted_dashboard: "https://tscnlab.github.io/2025_ADayInDaylight/"
@@ -15,7 +15,10 @@ dataset_deposit:
   resource_type: "Dataset"
   license: "CC-BY-4.0"
   version: "1.0.0"
-  persistent_identifier: "Zenodo Dataset DOI recorded on the accompanying deposit record"
+  publication_date: "2026-07-28"
+  doi: "10.5281/zenodo.21654277"
+  url: "https://doi.org/10.5281/zenodo.21654277"
+  github_branch: "https://github.com/tscnlab/2025_ADayInDaylight_Data/tree/data_note"
 verified_counts:
   survey_rows: 1879
   survey_record_ids: 52
