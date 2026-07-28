@@ -8,3 +8,6 @@
 /.Rproj.user/
 /data_note/
 /docs/
+
+# Local private handover copy; never publish
+/handover_private/
