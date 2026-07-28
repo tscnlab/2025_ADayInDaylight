@@ -74,7 +74,7 @@ contributors or combine these data with external information for that purpose.
 
 - Dataset DOI: <https://doi.org/10.5281/zenodo.21654277>
 - GitHub `data_note` branch:
-  <https://github.com/tscnlab/2025_ADayInDaylight_Data/tree/data_note>
+  <https://github.com/tscnlab/2025_ADayInDaylight/tree/data_note>
 - Project website: <https://tscnlab.github.io/2025_ADayInDaylight/>
 - Interactive dashboard:
   <https://tscnlab.github.io/2025_ADayInDaylight/Dashboard.html>

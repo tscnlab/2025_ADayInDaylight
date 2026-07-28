@@ -21,7 +21,7 @@ authors:
     family-names: "Spitschan"
     affiliation: "Technical University of Munich, Germany; Max Planck Institute for Biological Cybernetics, Germany; TUMCREATE Ltd., Singapore"
     orcid: "https://orcid.org/0000-0002-8572-9268"
-repository-code: "https://github.com/tscnlab/2025_ADayInDaylight_Data/tree/data_note"
+repository-code: "https://github.com/tscnlab/2025_ADayInDaylight/tree/data_note"
 url: "https://doi.org/10.5281/zenodo.21654277"
 license: CC-BY-4.0
 version: 1.0.0

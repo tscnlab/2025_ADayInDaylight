@@ -31,7 +31,7 @@ execute:
 
 *A Day in Daylight 2025* paired wearable light measurements with structured descriptions of what contributors were doing and where they encountered light around the September 2025 equinox. The [interactive dashboard](https://tscnlab.github.io/2025_ADayInDaylight/Dashboard.html) presents the original public exploration, and the [rendered R/Quarto analysis](https://tscnlab.github.io/2025_ADayInDaylight/Analysis.html) exposes its processing and visualisation workflow.
 
-The deposited dataset is available from the [GitHub `data_note` branch](https://github.com/tscnlab/2025_ADayInDaylight_Data/tree/data_note) and Zenodo at [doi:10.5281/zenodo.21654277](https://doi.org/10.5281/zenodo.21654277) under CC BY 4.0.
+The deposited dataset is available from the [GitHub `data_note` branch](https://github.com/tscnlab/2025_ADayInDaylight/tree/data_note) and Zenodo at [doi:10.5281/zenodo.21654277](https://doi.org/10.5281/zenodo.21654277) under CC BY 4.0.
 
 This short document introduces the four transformed release tables, demonstrates their linkage, and gives two descriptive examples. It does not reproduce the legacy dashboard analysis and does not make inferential, causal, clinical or population-representative claims. The release is pseudonymised rather than anonymous; users should not attempt to identify contributors.
 
