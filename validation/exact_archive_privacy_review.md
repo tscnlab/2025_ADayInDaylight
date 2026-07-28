@@ -40,7 +40,7 @@ TUM determined that publication of the transformed dataset under CC BY 4.0 is pe
 
 ## Runtime and provenance
 
-- R: R version 4.5.0 (2025-04-11)
+- R: R version 4.6.1 (2026-06-24)
 - tidyverse: 2.0.0
 - digest: 0.6.39
 - Archive-level SHA-256 values are supplied in `checksums.sha256`.
